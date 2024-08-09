@@ -261,6 +261,13 @@ png.sph2coord <- function (long, lat, radius = 1, deg = TRUE){
 #' @export plot.sphereGLM
 plot.sphereGLM <- function(fit, opacity=FALSE, plot.mu=FALSE){
   
+  if(FALSE){
+    opacity=FALSE
+    plot.mu = T
+  }
+  
+  
+  
   Y <- fit$Y
   
   if(FALSE){
@@ -274,7 +281,7 @@ plot.sphereGLM <- function(fit, opacity=FALSE, plot.mu=FALSE){
     {
       set.seed(2)
       simdata <- sim.sphereGLM(n=150, mu=c(1/sqrt(3),1/sqrt(3),1/sqrt(3)) %>% {./norm(.,"2")}, snr=100, r=2, s=3, s0 = 0.0001, type="Proj")
-      X <- simdata$U;  Y <- simdata$X
+      X <- simdata$X;  Y <- simdata$Y
       fit <- sphereGLM(X, Y)
       
       plot.sphereGLM(fit, plot.mu=TRUE)
@@ -287,7 +294,7 @@ plot.sphereGLM <- function(fit, opacity=FALSE, plot.mu=FALSE){
     {
       set.seed(2)
       simdata <- sim.sphereGLM(n=150, mu=c(1/sqrt(3),1/sqrt(3),1/sqrt(3)) %>% {./norm(.,"2")}, snr=100, r=1, s=10, s0 = 0.0001, type="Proj")
-      X <- simdata$U;  Y <- simdata$X
+      X <- simdata$X;  Y <- simdata$Y
       fit <- sphereGLM(X, Y)
       
       plot.sphereGLM(fit, plot.mu=TRUE)
@@ -320,6 +327,7 @@ plot.sphereGLM <- function(fit, opacity=FALSE, plot.mu=FALSE){
     
   }
   
+  
   # Function to project a point onto a plane
   project_to_plane <- function(point, plane_normal, plane_point) {
     # Extract the components of the point
@@ -347,6 +355,7 @@ plot.sphereGLM <- function(fit, opacity=FALSE, plot.mu=FALSE){
     
     return(c(x_proj, y_proj, z_proj))
   }
+  
   
   
   # 외적을 계산하는 함수 정의
@@ -381,7 +390,7 @@ plot.sphereGLM <- function(fit, opacity=FALSE, plot.mu=FALSE){
     
     if(nrow(beta)>1){
       normal_vector <- project_to_plane(c(0,0,0), cross_product(beta[1,], beta[2,]), mu)
-      rgl::planes3d(a=normal_vector, d=-1, alpha=0.1, add=TRUE)
+      rgl::planes3d(a=normal_vector, d=-sum(normal_vector * mu), alpha=0.1, add=TRUE)
       # rgl::abclines3d(mu[1],mu[2],mu[3], beta, alpha=0.5, col="blue", lwd=2)
     }
     

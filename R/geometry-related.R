@@ -30,6 +30,8 @@ png.FrechetMean <- function(X, lr=1, maxit=1000, tol=1e-10, verbose=FALSE){
   matrix(ynew, ncol=1)
 }
 
+
+#' @export FrechetMean
 FrechetMean <- function(X, ...){
   manifold::frechetMean(manifold::createM("Sphere"), t(X), ...)
 }

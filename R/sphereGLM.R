@@ -1,6 +1,13 @@
 #' @export sphereGLM
 sphereGLM <- function(X, Y, MU=NULL, Offset=NULL, lambda1=1e-12, lambda2=1e-12, beta0=NULL, maxit=100, eps=1e-8, standardize=TRUE, kappa.type=4, use.nlm=TRUE){
   
+  if(FALSE){
+    MU=NULL; Offset=NULL; lambda1=1e-12; lambda2=1e-12; beta0=NULL; maxit=100; eps=1e-8; standardize=TRUE; kappa.type=4
+  }
+  
+  X <- as.matrix(X)
+  Y <- as.matrix(Y)
+  
   
   # Figure: Initial value가 얼마나 괜찮은것인지?
   if(FALSE){
@@ -29,10 +36,10 @@ sphereGLM <- function(X, Y, MU=NULL, Offset=NULL, lambda1=1e-12, lambda2=1e-12, 
   # For Plotting
   if(FALSE){
     set.seed(1)
-    simdata <- sim.sphere.v2(n=150, mu=c(0,1,0), r=2, s=5, s0 = 0.01)
-    X <- simdata$U;  Y <- simdata$X
-    fit <- glm.vmf(X[,1:2], Y)
-    glm.vmf.plot(fit, plot.mu = T)
+    simdata <- sim.sphereGLM(n=150, mu=c(0,0,1), r=2, s=5, s0 = 0.01)
+    X <- simdata$X;  Y <- simdata$Y
+    fit <- sphereGLM(X[,1:2], Y)
+    plot.sphereGLM(fit, plot.mu = T)
   }
   
   
@@ -44,8 +51,8 @@ sphereGLM <- function(X, Y, MU=NULL, Offset=NULL, lambda1=1e-12, lambda2=1e-12, 
     X <- iris[, 3:4]
     
     vmf.reg2(Y, X)$beta
-    glm.vmf(as.matrix(X), Y, use.nlm=TRUE)$beta
-    glm.vmf(as.matrix(X), Y, use.nlm=FALSE)$beta
+    sphereGLM(as.matrix(X), Y, use.nlm=TRUE)$beta
+    sphereGLM(as.matrix(X), Y, use.nlm=FALSE)$beta
     
     
     microbenchmark::microbenchmark(
@@ -81,14 +88,20 @@ sphereGLM <- function(X, Y, MU=NULL, Offset=NULL, lambda1=1e-12, lambda2=1e-12, 
     p <- ncol(X)
     
     
-    
     regvmf <- function(be, y, x) {
-      be <- matrix(be, ncol = q)
-      mu <- x %*% be
-      ki <- sqrt(Rfast::rowsums(mu^2))
       
-      - sum( apply(mu, 1, Cq, log=TRUE) ) - sum(mu * y)
-      # -sum(  log(ki)) + sum(log(sinh(ki))) - sum(mu * y)
+      be <- matrix(be, ncol = q)
+      theta <- x %*% be
+      ki <- sqrt(Rfast::rowsums(theta^2))
+      
+      
+      # Cq <- function(NORM, q){
+      #   (  (q/2-1) * log(NORM) - ( (q/2) * log(2*pi) + log( besselI(NORM, q/2-1, expon.scaled=TRUE) ) + NORM )  )
+      # }
+      # - sum( Cq(ki, q) ) - sum(theta * y)
+      
+      - sum( apply(theta, 1, Cq, log=TRUE) ) - sum(theta * y)
+      # -sum(  log(ki)) + sum(log(sinh(ki))) - sum(theta * y)
     }
     
     
