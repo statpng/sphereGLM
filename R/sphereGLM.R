@@ -1,12 +1,38 @@
+#' @importFrom manifold frechetMean
+#' @importFrom manifold createM
+#' @importFrom magic adiag
+#' @importFrom dplyr `%>%`
+
 #' @export sphereGLM
-sphereGLM <- function(X, Y, MU=NULL, Offset=NULL, lambda1=1e-12, lambda2=1e-12, beta0=NULL, maxit=100, eps=1e-8, standardize=TRUE, kappa.type=4, use.nlm=TRUE){
+sphereGLM <- function(X, Y, MU=NULL, Offset=NULL, beta0=NULL, maxit=100, eps=1e-6, standardize=TRUE, lambda=1e-4, use.nlm=TRUE){
+  
+  
+  # library(magic)
   
   if(FALSE){
-    MU=NULL; Offset=NULL; lambda1=1e-12; lambda2=1e-12; beta0=NULL; maxit=100; eps=1e-8; standardize=TRUE; kappa.type=4
+    MU=NULL; Offset=NULL; beta0=NULL; maxit=100; eps=1e-6; standardize=TRUE; lambda=1e-8; use.nlm=F
+    
+    library(magic); library(dplyr)
   }
   
-  X <- as.matrix(X)
-  Y <- as.matrix(Y)
+  
+  
+  FrechetMean_eqiv <- function(X, ...){
+    manifold::frechetMean(manifold::createM("Sphere"), t(X), ...)
+  }
+
+  diag.matrix <- function(X, lambda){
+    n=dim(X)[1]; p=dim(X)[2]
+    if(n != p) stop("The matrix is not square; it has unequal dimensions.")
+    
+    diag(lambda, n, p)
+  }
+  
+  
+  if(FALSE){
+    lambda=1e-6
+    MU=NULL; Offset=NULL; beta0=NULL; maxit=100; eps=1e-8; standardize=TRUE
+  }
   
   
   # Figure: Initial value가 얼마나 괜찮은것인지?
@@ -29,7 +55,7 @@ sphereGLM <- function(X, Y, MU=NULL, Offset=NULL, lambda1=1e-12, lambda2=1e-12, 
   if(FALSE){
     simdata <- sim.sphereGLM()
     X=simdata$X; Y=simdata$Y; MU=NULL; Offset=NULL; lambda1=1e-12; lambda2=1e-12; 
-    beta0=NULL; maxit=100; eps=1e-8; standardize=TRUE; kappa.type=4; use.nlm=TRUE
+    beta0=NULL; maxit=100; eps=1e-8; standardize=TRUE; use.nlm=TRUE
   }
   
   
@@ -47,13 +73,12 @@ sphereGLM <- function(X, Y, MU=NULL, Offset=NULL, lambda1=1e-12, lambda2=1e-12, 
   if(FALSE){
     library(png.Directional)
     
-    Y <- rvmf(150, rnorm(3), 5)
+    Y <- rvmf(150, rnorm(10), 1)
     X <- iris[, 3:4]
     
     vmf.reg2(Y, X)$beta
     sphereGLM(as.matrix(X), Y, use.nlm=TRUE)$beta
     sphereGLM(as.matrix(X), Y, use.nlm=FALSE)$beta
-    
     
     microbenchmark::microbenchmark(
       vmf.reg2(Y, X)$beta,
@@ -79,13 +104,38 @@ sphereGLM <- function(X, Y, MU=NULL, Offset=NULL, lambda1=1e-12, lambda2=1e-12, 
   
   
   
+  
+  
+  
+  
+  X <- as.matrix(X)
+  Y <- as.matrix(Y)
+  
+  
+  
+  X00 <- X
+  X0 <- scale(X, center=TRUE, scale=FALSE)
+  
+  if(standardize){
+    sdx.inv <- apply(X0,2,sd) %>% {diag(1/., length(.), length(.))}
+    X <- X0 %*% sdx.inv
+  } else {
+    X <- X0
+  }
+  
+  
+  n <- nrow(X)
+  p <- ncol(X)
+  q <- ncol(Y)
+  
+  
+  
   if(use.nlm){
+    
     
     x <- model.matrix(~., data.frame(X))
     y <- Y
-    n <- dim(Y)[1]
-    q <- ncol(Y)
-    p <- ncol(X)
+    
     
     
     regvmf <- function(be, y, x) {
@@ -93,7 +143,6 @@ sphereGLM <- function(X, Y, MU=NULL, Offset=NULL, lambda1=1e-12, lambda2=1e-12, 
       be <- matrix(be, ncol = q)
       theta <- x %*% be
       ki <- sqrt(Rfast::rowsums(theta^2))
-      
       
       # Cq <- function(NORM, q){
       #   (  (q/2-1) * log(NORM) - ( (q/2) * log(2*pi) + log( besselI(NORM, q/2-1, expon.scaled=TRUE) ) + NORM )  )
@@ -105,28 +154,39 @@ sphereGLM <- function(X, Y, MU=NULL, Offset=NULL, lambda1=1e-12, lambda2=1e-12, 
     }
     
     
-    # regvmf <- function(be, y, x) {
-    #   be <- matrix(be, ncol = q)
-    #   mu <- x %*% be
-    #   ki <- sqrt(Rfast::rowsums(mu^2))
-    # 
-    #   - sum( apply(mu, 1, Cq, log=TRUE) ) - sum(mu * y)
-    #   # -sum(  log(ki)) + sum(log(sinh(ki))) - sum(mu * y)
-    # }
-    
-    
     ini <- solve(crossprod(x), crossprod(x, y))
-    val1 <- nlm(regvmf, ini, y = y, x = x, iterlim = 1000)
+    # val1 <- nlm(regvmf, ini, y = y, x = x, iterlim = 1000)
     # val2 <- nlm(regvmf, val1$estimate, y = y, x = x, iterlim = 1000)
     
+    
+    
+    
+    suppressWarnings({
+      val1 <- nlm(regvmf, ini, y = y, x = x, iterlim = maxit)
+      val2 <- nlm(regvmf, val1$estimate, y = y, x = x, iterlim = maxit)
+      # while(val1$minimum - val2$minimum > eps) {
+      #   val1 <- val2
+      #   val2 <- nlm(regvmf, val1$estimate, y = y, x = x, 
+      #               iterlim = 1000)
+      # }
+      da <- optim(val2$estimate, regvmf, y = y, x = x, 
+                  control = list(maxit = maxit), 
+                  hessian = TRUE)
+    })
+    
+    
+    
     result <- NULL
-    result$X <- X
+    result$X <- X0
     result$Y <- Y
-    result$beta <- matrix(val1$estimate, ncol = q)
+    result$mu <- matrix(da$par, ncol = q)[1,]
+    result$beta <- matrix(da$par, ncol = q)
+    if(standardize){
+      result$beta <- magic::adiag(1, sdx.inv) %*% result$beta
+    }
     result$beta2 <- result$beta
-    result$beta2[-1,] <- t( apply(result$beta[-1,,drop=F], 1, function(x) x/norm(result$beta[1,], "2")) )
-    result$beta2[1,] <- result$beta[1,]/norm(result$beta[1,], "2")
-    result$loglik <- -val1$minimum
+    result$loglik <- -da$value
+    
     
     
   } else {
@@ -144,35 +204,19 @@ sphereGLM <- function(X, Y, MU=NULL, Offset=NULL, lambda1=1e-12, lambda2=1e-12, 
     
     
     
-    
-    
-    library(magic)
-    
-    n <- nrow(Y)
-    q <- ncol(Y)
-    p <- ncol(X)
-    
     if(is.null(Offset)){
       Offset <- matrix(0,n,q)
     }
     
-    X0 <- scale(X, center=TRUE, scale=FALSE)
-    
-    if(standardize){
-      sdx.inv <- apply(X0,2,sd) %>% {diag(1/., length(.), length(.))}
-      X <- X0 %*% sdx.inv
-    } else {
-      X <- X0
-    }
-    
-    
     
     
     if(is.null(MU)){
-      MU <- FrechetMean(Y)
+      MU <- FrechetMean_eqiv(Y)
       
       muhat <- colSums(Y) %>% {./norm(.,"2")} # mle of mean direction in vMF
       rbar <- colSums(Y) %>% {norm(.,"2")/nrow(Y)}
+      
+      kappa.type <- 4
       
       if(is.null(kappa.type)){
         kappa0 <- 1
@@ -217,7 +261,7 @@ sphereGLM <- function(X, Y, MU=NULL, Offset=NULL, lambda1=1e-12, lambda2=1e-12, 
     l1 <- 1
     beta_old <- beta
     beta_new <- beta + 1
-    beta.list <- loglik.list <- crit.list <- NULL
+    beta.list <- Fn.list <- loglik.list <- crit.list <- NULL
     crit <- 1
     while( crit > eps & l1 <= maxit ){
       
@@ -232,15 +276,15 @@ sphereGLM <- function(X, Y, MU=NULL, Offset=NULL, lambda1=1e-12, lambda2=1e-12, 
       W <- do.call("adiag", b2.list) # magic::adiag
       # W.inv <- do.call("adiag", lapply(b2.list, function(x) solve(x)) ) # magic::adiag
       
-      (Z <- crossprod(Xt, beta) + chol2inv(chol(W)) %*% (yt - eta))
-      # Z <- crossprod(Xt, beta) + solve(W + diag(lambda1, n*q, n*q)) %*% (yt - eta)
+      # (Z <- crossprod(Xt, beta) + chol2inv(chol(W)) %*% (yt - eta))
+      Z <- crossprod(Xt, beta) + solve(W + diag.matrix(W, lambda)) %*% (yt - eta)
       
-      # beta <- solve(Xt %*% W %*% t(Xt) + diag(c(0,rep(lambda2,p)),q*(p+1),q*(p+1))) %*% Xt %*% W %*% Z
-      (beta <- chol2inv(chol(Xt %*% W %*% t(Xt))) %*% Xt %*% W %*% Z)
+      # (beta <- chol2inv(chol(Xt %*% W %*% t(Xt))) %*% Xt %*% W %*% Z)
+      XWX <- Xt %*% W %*% t(Xt)
+      beta <- solve(XWX + Matrix::bdiag( 0, diag.matrix(XWX[-1,-1], lambda) ) ) %*% Xt %*% W %*% Z
       
       # beta <- solve(Xt %*% W %*% t(Xt) + diag(lambda2,q*(p+1),q*(p+1))) %*% Xt %*% W %*% Z
       
-      # beta[1:3] <- beta[1:3] %>% {./norm(.,"2")}
       
       beta_new <- beta
       
@@ -253,6 +297,8 @@ sphereGLM <- function(X, Y, MU=NULL, Offset=NULL, lambda1=1e-12, lambda2=1e-12, 
       
       loglik.list[l1] <- loglik
       crit.list[l1] <- crit
+      Fn.list[[l1]] <- XWX
+      
       
       l1 <- l1 + 1
     }
@@ -262,8 +308,6 @@ sphereGLM <- function(X, Y, MU=NULL, Offset=NULL, lambda1=1e-12, lambda2=1e-12, 
     
     
     # plot(loglik.list, type="l")
-    
-    
     
     
     
@@ -277,24 +321,27 @@ sphereGLM <- function(X, Y, MU=NULL, Offset=NULL, lambda1=1e-12, lambda2=1e-12, 
     
     
     
-    result <- list(X=X, Y=Y,
-                   mu=beta_new[1,], 
+    
+    result <- list(X=X0, Y=Y, mu=beta_new[1,],
                    beta=beta_new,
+                   beta2=beta_new,
                    beta.list=beta.list,
                    offset=Offset,
-                   lambda1=lambda1,
-                   lambda2=lambda2,
-                   # beta=matrix(beta,p,q,byrow=TRUE),
-                   # beta.list=beta.list %>% lapply(function(x) matrix(x,p,q,byrow=TRUE)),
-                   # beta=matrix(beta,p+1,q,byrow=TRUE),
-                   # beta.list=beta.list %>% lapply(function(x) matrix(x,p+1,q,byrow=TRUE)),
-                   loglik.list=loglik.list[-1], crit.list=crit.list[-1])  
+                   loglik.list=loglik.list[-1], 
+                   crit.list=crit.list[-1])  
     
   }
   
-  result$beta2 <- result$beta
-  result$beta2[-1,] <- t( apply(result$beta[-1,,drop=F], 1, function(x) x/norm(result$beta[1,], "2")) )
-  result$beta2[1,] <- result$beta[1,]/norm(result$beta[1,], "2")
+  
+  
+  
+  params <- list( MU=MU, Offset=Offset, beta0=beta0, maxit=maxit, eps=eps, standardize=standardize, use.nlm=use.nlm )
+  
+  
+  result$beta2[-1,] <- t( apply(result$beta2[-1,,drop=F], 1, function(x) x/norm(result$beta2[1,], "2")) )
+  result$beta2[1,] <- result$beta2[1,]/norm(result$beta2[1,], "2")
+  
+  result$params <- params
   
   
   return(result)
@@ -318,9 +365,13 @@ Cq <- function(theta, logarithm=TRUE){
   # (NORM)^(q/2-1) / ( (2*pi)^(q/2) * besselI(NORM, q/2-1) )
   
   if(logarithm){
+    
     (q/2-1) * log(NORM) - ( (q/2) * log(2*pi) + log( besselI(NORM, q/2-1, expon.scaled=TRUE) ) + NORM )
+    
   } else {
+    
     exp(  (q/2-1) * log(NORM) - ( (q/2) * log(2*pi) + log( besselI(NORM, q/2-1, expon.scaled=TRUE) ) + NORM )  )
+    
   }
   
 }

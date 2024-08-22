@@ -79,16 +79,26 @@ png.sphere.grid <- function (radius = 1, col.long = "red", col.lat = "blue", deg
 
 
 #' @export png.sphere
-png.sphere <- function(df, col="red", cex=0.01, opacity=TRUE, add=FALSE, axis.arrange=FALSE){
+png.sphere <- function(df, col="red", cex=0.01, opacity=TRUE, add=FALSE, main=NULL, cex.main=2, position="topleft"){
   
+  if(FALSE){
+    df=Y; col=col1; opacity=opacity; add=add
+    cex=0.01; axis.arrange=FALSE
+    main <- "This is the main title"
+    cex.main=2
+  }
   
   library(rgl)
   
   if(FALSE){
     set.seed(1)
-    png.sphere(sim.sphereGLM(n=2)$Y, opacity=F)
+    png.sphere(sim.sphereGLM(n=100)$Y, col="red", opacity=TRUE, main="This is the main title")
+    png.sphere(sim.sphereGLM(n=100)$Y, col="blue", opacity=TRUE, add=TRUE)
+    
     set.seed(1)
-    png.sphere(sim.sphereGLM(n=100, s=10)$Y, opacity=T)
+    png.sphere(sim.sphereGLM(n=100, mu=c(1,0,0), s=10)$Y, opacity=T)
+    set.seed(1)
+    png.sphere(sim.sphereGLM(n=100, mu = c(0,1,0), s=10)$Y, col="blue", add=TRUE)
   }
   
   if(FALSE){
@@ -99,32 +109,22 @@ png.sphere <- function(df, col="red", cex=0.01, opacity=TRUE, add=FALSE, axis.ar
   
   
   
+  
   if( ncol(df) != 3 ) stop("Check the number of columns")
   
-  x <- df[,1]
-  y <- df[,2]
-  z <- df[,3]
+  
+  # if(axis.arrange){
+  #   x <- df[,1]
+  #   y <- df[,3]
+  #   z <- df[,2]
+  # } else {
+    x <- df[,1]
+    y <- df[,2]
+    z <- df[,3]
+  # }
   
   
-  if(opacity){
-    if(add){
-      
-      # par3d(userMatrix = rotationMatrix(75*pi/180, 1, 0, 0)
-      #       # userProjection = matrix(c(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1),4,4,byrow=T),
-      #       # windowRect=c(0,45,800,800)
-      #       # windowRect=c(0,45,800,800)
-      # )
-      
-      if(axis.arrange){
-        spheres3d(x,z,y,col=col,radius=cex)
-      } else {
-        spheres3d(x,y,z,col=col,radius=cex)
-      }
-      
-      
-    } else {
-      
-      
+    if(!add){
       
       open3d()
       # getr3dDefaults()
@@ -133,59 +133,37 @@ png.sphere <- function(df, col="red", cex=0.01, opacity=TRUE, add=FALSE, axis.ar
       par3d(userMatrix = rotationMatrix(45*pi/180, 1, 0, 0),
             # userProjection = matrix(c(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1),4,4,byrow=T),
             # windowRect=c(0,45,800,800)
-            windowRect=c(0,45,800,800)
+            windowRect=c(0,45,500,500)
       )
-      spheres3d(0,0,0,lit=FALSE,color="white")
-      spheres3d(0,0,0,radius=1.0,lit=FALSE,color="black",front="lines")
       
-      if(axis.arrange){
-        spheres3d(y,z,x,col=col,radius=cex)
-      } else {
-        spheres3d(x,y,z,col=col,radius=cex)
-      }
-      
-      
-      
-      
-      
-      # axis.arrange = FALSE
-      # {
+      # if(!is.null(main) | !is.null(submain)){
       #   
-      #   open3d()
-      #   # getr3dDefaults()
-      #   # rgl.par3d.names
-      #   # par3d()$viewport
-      #   par3d(userMatrix = rotationMatrix(45*pi/180, 1, 0, 0),
-      #         # userProjection = matrix(c(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1),4,4,byrow=T),
-      #         # windowRect=c(0,45,800,800)
-      #         windowRect=c(0,45,800,800)
-      #   )
-      #   spheres3d(0,0,0,lit=FALSE,color="white")
-      #   spheres3d(0,0,0,radius=1.0,lit=FALSE,color="black",front="lines")
-      #   spheres3d(x,z,y,col=col,radius=cex)
+      #   bgplot3d({
+      #     plot.new()
+      #     if(!is.null(main)) title(main = main, line = 3)
+      #     if(!is.null(submain)) mtext(side = 1, submain, line = 4)
+      #     # use here any other way you fancy to write your title
+      #   }, magnify = 0.5)
       #   
       # }
       
-    }
-  } else {
-    
-    
-    if(axis.arrange){
-      df <- df[,c(2,3,1)]
-      df[,3] <- df[,3]
-      x <- df[,1]
-      y <- df[,2]
-      z <- df[,3]
+      if(opacity){
+        spheres3d(0,0,0,lit=FALSE,color="white")
+        spheres3d(0,0,0,radius=1.0,lit=FALSE,color="black",front="lines")
+      } else {
+        png.sphere.grid(add=TRUE)
+      }
       
       
-      png.sphere.grid(add=F)
-      points3d(x,y,z,col=col,radius=cex)
-    } else {
-      png.sphere.grid(add=F)
-      spheres3d(x,y,z,col=col,radius=cex)
     }
     
-  }
+  
+  if(!is.null(main)) legend3d(position, legend = main, adj=0.1, cex=cex.main, bty="n", border = FALSE)
+  
+  # legend3d("topright", legend = paste('Type', c('A', 'B', 'C')), pch = 16, col = rainbow(3), cex=1, inset=c(0.02))
+  
+    
+  spheres3d(x,y,z,col=col,radius=cex)
   
   rgl::text3d(1.1,0,0, texts="(1,0,0)")
   rgl::text3d(0,1.1,0, texts="(0,1,0)")
@@ -194,6 +172,7 @@ png.sphere <- function(df, col="red", cex=0.01, opacity=TRUE, add=FALSE, axis.ar
   rgl::text3d(-1.1,0,0, texts="(-1,0,0)")
   rgl::text3d(0,-1.1,0, texts="(0,-1,0)")
   rgl::text3d(0,0,-1.1, texts="(0,0,-1)")
+  
   
 }
 
@@ -259,16 +238,29 @@ png.sph2coord <- function (long, lat, radius = 1, deg = TRUE){
 
 
 #' @export plot.sphereGLM
-plot.sphereGLM <- function(fit, opacity=FALSE, plot.mu=FALSE){
+plot.sphereGLM <- function(fit, cex=0.01, opacity=FALSE, plot.mu=FALSE, col=NULL, add=FALSE, main=NULL, ...){
   
   if(FALSE){
     opacity=FALSE
     plot.mu = T
   }
   
+  if(FALSE){
+    
+    set.seed(1)
+    fit1 <- sim.sphereGLM(n=150, mu=c(0,0,1), r=2, s=5, s0 = 0.01) %>% 
+      with(sphereGLM(X[,1], Y))
+    fit2 <- sim.sphereGLM(n=150, mu=c(0,1,0), r=2, s=5, s0 = 0.01) %>% 
+      with(sphereGLM(X[,1], Y))
+    
+    plot.sphereGLM(fit1, plot.mu = T, col="red", opacity=F, cex=0.01, main="abc")
+    plot.sphereGLM(fit2, plot.mu = T, col="blue", add=TRUE, opacity=F)
+    #
+    
+  }
   
   
-  Y <- fit$Y
+  
   
   if(FALSE){
     
@@ -368,7 +360,9 @@ plot.sphereGLM <- function(fit, opacity=FALSE, plot.mu=FALSE){
   }
   
   
-
+  
+  
+  Y <- fit$Y
   mu <- fit$beta[1,,drop=T]
   beta <- fit$beta[-1,,drop=FALSE]
   beta <- apply(beta, 1, function(x) x / norm(mu, "2")) %>% t()
@@ -382,37 +376,59 @@ plot.sphereGLM <- function(fit, opacity=FALSE, plot.mu=FALSE){
   MU <- tcrossprod(rep(1,nrow(beta)), mu)
   
   
+  if(is.null(col)){
+    col1 <- "red"
+    col2 <- "blue"
+    col3 <- "purple"
+  } else {
+    
+    
+    {
+      a1 <- col2rgb(col)
+      a2 <- rgb2hsv(a1)
+      pastel_col1 <- hsv(a2[1,], a2[2,]*0.9, a2[3,])
+      pastel_col2 <- hsv(a2[1,], a2[2,]*0.7, a2[3,])
+      pastel_col3 <- hsv(a2[1,], a2[2,]*0.5, a2[3,])
+      hue <- a2["h",]*360
+      n <- 0.4
+      pastel_col4 <- hcl(hue, 35, 85)
+    }
+    
+    col1 <- pastel_col1
+    col2 <- pastel_col2
+    col3 <- pastel_col3
+  }
+  
+  
+  
+  
+  
+  png.sphere(Y, col=col1, opacity=opacity, add=add, cex=cex, main=main, ...)
+  
+  
+  if(nrow(beta)>1){
+    normal_vector <- project_to_plane(c(0,0,0), cross_product(beta[1,], beta[2,]), mu)
+    rgl::planes3d(a=normal_vector, d=-sum(normal_vector * mu), alpha=0.1, add=TRUE)
+    # rgl::abclines3d(mu[1],mu[2],mu[3], beta, alpha=0.5, col="blue", lwd=2)
+  }
+  
+  
+  for( k in 1:nrow(MU) ){
+    rgl::arrow3d(MU[k,]-beta[k,], MU[k,]+beta[k,], type=c("lines", "rotation")[1], col=col2, s=0.05, barblen=0.03, width=0.5, add=TRUE, n=100)
+  }
+  
+  
   
   if(plot.mu){
     
-    png.sphere(Y, opacity=opacity)
-    rgl::arrow3d(c(0,0,0), mu, type=c("lines", "rotation")[1], col="purple", s=0.1,barblen=0.05, width=0.5, add=TRUE)
-    
-    if(nrow(beta)>1){
-      normal_vector <- project_to_plane(c(0,0,0), cross_product(beta[1,], beta[2,]), mu)
-      rgl::planes3d(a=normal_vector, d=-sum(normal_vector * mu), alpha=0.1, add=TRUE)
-      # rgl::abclines3d(mu[1],mu[2],mu[3], beta, alpha=0.5, col="blue", lwd=2)
-    }
-    
-    for( k in 1:nrow(MU) ){
-      rgl::arrow3d(MU[k,]-beta[k,], MU[k,]+beta[k,], type=c("lines", "rotation")[1], col="blue", s=0.1, barblen=0.05, width=0.5, add=TRUE)
-    }
-    
-  } else {
-    
-    png.sphere(Y, opacity=opacity)
-    
-    if(nrow(beta)>1){
-      normal_vector <- project_to_plane(c(0,0,0), cross_product(beta[1,], beta[2,]), mu)
-      rgl::planes3d(a=normal_vector, d=-1, alpha=0.1, add=TRUE)
-      # rgl::abclines3d(mu[1],mu[2],mu[3], beta, alpha=0.5, col="blue", lwd=2)
-    }
-    
-    for( k in 1:nrow(MU) ){
-      rgl::arrow3d(MU[k,]-beta[k,], MU[k,]+beta[k,], type=c("lines", "rotation")[1], col="blue", s=0.1, barblen=0.05, width=0.5, add=TRUE)
-    }
+    switch(3,
+           `1`=rgl::arrow3d(c(0,0,0), mu, type=c("lines", "rotation")[1], col=col3, s=0.1, barblen=0.05, width=0.5, add=TRUE),
+           `2`=rgl::arrow3d(c(0,0,0), mu, type=c("lines", "rotation")[2], col=col3, s=0.1, barblen=0.05, width=0.1, add=TRUE),
+           `3`=rgl::arrow3d(c(0,0,0), mu, type=c("lines", "rotation")[1], col=col3, n=100, s=0.02, barblen=0.03, width=0.1, add=TRUE)
+           )
     
   }
+  
   
   
   

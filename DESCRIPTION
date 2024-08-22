@@ -7,8 +7,8 @@ Author: Kipoong Kim
 Maintainer: Kipoong Kim <kkp7700@gmail.com>
 Description: Description.
 License: GPL-3
-Imports: Rcpp (>= 1.0.8.3), Matrix, ggplot2, MASS, dplyr, mnormt, plyr, gtools, magic, manifold, Directional
-LinkingTo: Rcpp, RcppArmadillo
+Imports: Rcpp (>= 1.0.8.3)
+LinkingTo: Rcpp, RcppArmadillo, Matrix, ggplot2, MASS, dplyr, mnormt, plyr, gtools, magic, manifold, Directional
 RoxygenNote: 7.3.2
 Encoding: UTF-8
 LazyData: true

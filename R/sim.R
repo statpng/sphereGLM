@@ -1,34 +1,44 @@
 #' @importFrom Directional rvmf
 #' @export sim.sphereGLM
-sim.sphereGLM <- function(n=50, p=3, r=1, mu=c(0,0,1), snr=NULL, s=2, s0=0, type=c("vMF", "Proj", "ExpMap")){
+sim.sphereGLM <- function(n=50, p=1, q=3, mu=c(0,0,1), snr=NULL, s=2, s0=0, type=c("vMF", "Proj", "ExpMap"), seed.UDV=1, seed.E=NULL){
   # typeA = "sparse", typeB = "all", n = 50, p = 10, q = 10, 
   #  d = 3, rvec = NULL, nuA = 0.2, nuB = 0.5, d0 = 3, es = "1", 
   #  es.B = 1, snr = 1, simplify = TRUE, sigma = NULL, rho_X = 0.5, 
   #  rho_E = 0
   
   if(FALSE){
-    with( sim.sphereGLM(r=1, mu=c(0,0,50), s=200), png.sphere(Y))
-    with( sim.sphereGLM(r=1, mu=c(0,0,1), snr=200, s=5, type="Proj"), png.sphere(Y))
+    with( sim.sphereGLM(p=1, mu=c(0,0,50), s=200), png.sphere(Y))
+    with( sim.sphereGLM(p=1, mu=c(0,0,1), snr=200, s=5, type="Proj"), png.sphere(Y))
   }
   
   if(FALSE){
-    n=50; p=3; r=1; mu=c(0,0,1); snr=10; s=2; s0=0; use.ExpMap=FALSE
+    n=50; p=1; q=3; mu=c(0,0,1); snr=10; s=2; s0=0; use.ExpMap=FALSE
   }
+  
+  
+  
+  
+  if(is.null(seed.E)){
+    seed.E <- sample( setdiff(1:1000, seed.UDV), 1 )
+  }
+  
   
   
   if(length(type)>1){
     type <- "Proj"
   }
   
-  V.tmp <- do.call("cbind", lapply(1:r, function(x) rnorm(p)))
-  V <- qr.Q(qr( cbind(mu, V.tmp) ))[,-1]
-  D <- sapply(1:r, function(k) (s/k^2 + s0))
+  set.seed(seed.UDV)
+  D <- sapply(1:p, function(k) (s/k^2 + s0))
   
-  U.tmp <- do.call("cbind", lapply(1:r, function(x) rnorm(n)))
-  U <- qr.Q(qr( U.tmp )) %*% diag(D,r,r)
+  V.tmp <- do.call("cbind", lapply(1:p, function(x) rnorm(q)))
+  V <- qr.Q(qr( cbind(mu, V.tmp) ))[,-1] %*% diag(D,p,p)
   
-  # U <- matrix(0,n,r)
-  # for( k in 1:r ){
+  U.tmp <- do.call("cbind", lapply(1:p, function(x) rnorm(n)))
+  U <- qr.Q(qr( U.tmp ))
+  
+  # U <- matrix(0,n,p)
+  # for( k in 1:p ){
   #   U[,k] <- rnorm(n, mean=0, sd=D[k])
   # }
   
@@ -38,17 +48,20 @@ sim.sphereGLM <- function(n=50, p=3, r=1, mu=c(0,0,1), snr=NULL, s=2, s0=0, type
   
   
   
+  
+  set.seed(seed.E)
+  
   E <- NULL
   if( type %in% c("ExpMap", "Proj") ){
     if(is.null(snr)){
       snr <- 10
     }
     
-    E0 <- matrix(rnorm(n*(p-1),0,1),n,p-1)
+    E0 <- matrix(rnorm(n*(q-1),0,1),n,q-1)
     sigma <- sqrt(sum(as.numeric(Theta0)^2)/sum(as.numeric(E0)^2)/snr)
     E0 <- E0 * sigma
     
-    E.basis <- qr.Q(qr( cbind(mu, do.call("cbind", lapply(1:(p-1), function(x) rnorm(p))) ) ))[,-1]
+    E.basis <- qr.Q(qr( cbind(mu, do.call("cbind", lapply(1:(q-1), function(x) rnorm(q))) ) ))[,-1]
     E <- E0 %*% t(E.basis)
     
     if(FALSE){
@@ -85,7 +98,7 @@ sim.sphereGLM <- function(n=50, p=3, r=1, mu=c(0,0,1), snr=NULL, s=2, s0=0, type
   }
   
   
-  params <- c(n=n, p=p, r=r, mu=mu, snr=snr, s=s, s0=s0, type=type)
+  params <- c(n=n, q=q, p=p, mu=mu, snr=snr, s=s, s0=s0, type=type)
   result <- list(mu=mu, X=U, B=V, Y=Y, Theta=Theta, E=E, params=params)
   
   result
