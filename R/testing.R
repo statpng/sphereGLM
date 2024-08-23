@@ -6,16 +6,24 @@ if(FALSE){
   
   {
     set.seed(1)
-    simdata1 <- sphereGLM::sim.sphereGLM(n=50, p=1, q=3, mu=c(0,1000,0), snr=50, s=50, s0=0.0, type=c("vMF", "Proj", "ExpMap")[1])
+    simdata1 <- sphereGLM::sim.sphereGLM(n=50, p=2, q=3, mu=c(0,100,0), snr=50, s=50, s0=0.0, type=c("vMF", "Proj", "ExpMap")[1])
     fit1 <- with(simdata1, sphereGLM(X=X, Y=Y, use.nlm=F))
     fit <- fit1
-    
     
     summary.sphereGLM(fit1)
     
     plot.sphereGLM(fit1)
     
+    
+    
+    fit1 <- with(simdata1, sphereGLM(X=X, Y=Y, use.nlm=F, orthogonal = T))
+    fit2 <- with(simdata1, sphereGLM.v2(X=X, Y=Y, use.nlm=F, orthogonal = T))
+    plot.sphereGLM(fit2, plot.mu=TRUE)
   }
+  
+  
+  
+  
   
   
   {

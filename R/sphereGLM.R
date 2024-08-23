@@ -4,23 +4,13 @@
 #' @importFrom dplyr `%>%`
 
 #' @export sphereGLM
-sphereGLM <- function(X, Y, MU=NULL, Offset=NULL, beta0=NULL, maxit=100, eps=1e-6, standardize=TRUE, lambda=1e-4, use.nlm=TRUE){
-  
-  
-  # library(magic)
-  
-  if(FALSE){
-    MU=NULL; Offset=NULL; beta0=NULL; maxit=100; eps=1e-6; standardize=TRUE; lambda=1e-8; use.nlm=F
-    
-    library(magic); library(dplyr)
-  }
-  
+sphereGLM <- function(X, Y, MU=NULL, orthogonal=TRUE, standardize=TRUE, Offset=NULL, maxit=100, eps=1e-6, lambda=1e-4, use.nlm=FALSE){
   
   
   FrechetMean_eqiv <- function(X, ...){
     manifold::frechetMean(manifold::createM("Sphere"), t(X), ...)
   }
-
+  
   diag.matrix <- function(X, lambda){
     n=dim(X)[1]; p=dim(X)[2]
     if(n != p) stop("The matrix is not square; it has unequal dimensions.")
@@ -29,20 +19,19 @@ sphereGLM <- function(X, Y, MU=NULL, Offset=NULL, beta0=NULL, maxit=100, eps=1e-
   }
   
   
-  if(FALSE){
-    lambda=1e-6
-    MU=NULL; Offset=NULL; beta0=NULL; maxit=100; eps=1e-8; standardize=TRUE
-  }
   
   
-  # Figure: Initial value가 얼마나 괜찮은것인지?
+  # Figure: How good is the initial value?
   if(FALSE){
+    
+    set.seed(1)
+    simdata <- sim.sphereGLM(n=150, p=2, q=3, mu=c(0,0,1), s=5, s0 = 0.01)
     
     # true theta
     png.sphere(simdata$Theta, col="black")
     
     # initial estimate for theta
-    png.sphere(x %*% solve(crossprod(x), crossprod(x, y)), add=TRUE, col="red")
+    png.sphere(simdata %>% {.$X %*% solve(crossprod(.$X), crossprod(.$X, .$Y))}, add=TRUE, col="red")
     
     # sphereGLM estimate for theta
     fit <- sphereGLM(X=simdata$X, Y=simdata$Y)
@@ -52,57 +41,14 @@ sphereGLM <- function(X, Y, MU=NULL, Offset=NULL, beta0=NULL, maxit=100, eps=1e-
   
   
   
-  if(FALSE){
-    simdata <- sim.sphereGLM()
-    X=simdata$X; Y=simdata$Y; MU=NULL; Offset=NULL; lambda1=1e-12; lambda2=1e-12; 
-    beta0=NULL; maxit=100; eps=1e-8; standardize=TRUE; use.nlm=TRUE
-  }
-  
-  
   # For Plotting
   if(FALSE){
     set.seed(1)
-    simdata <- sim.sphereGLM(n=150, mu=c(0,0,1), r=2, s=5, s0 = 0.01)
+    simdata <- sim.sphereGLM(n=150, mu=c(0,0,1), p=2, s=5, s0 = 0.01)
     X <- simdata$X;  Y <- simdata$Y
     fit <- sphereGLM(X[,1:2], Y)
     plot.sphereGLM(fit, plot.mu = T)
   }
-  
-  
-  
-  if(FALSE){
-    library(png.Directional)
-    
-    Y <- rvmf(150, rnorm(10), 1)
-    X <- iris[, 3:4]
-    
-    vmf.reg2(Y, X)$beta
-    sphereGLM(as.matrix(X), Y, use.nlm=TRUE)$beta
-    sphereGLM(as.matrix(X), Y, use.nlm=FALSE)$beta
-    
-    microbenchmark::microbenchmark(
-      vmf.reg2(Y, X)$beta,
-      glm.vmf(as.matrix(X), Y)$beta,
-      glm.vmf(as.matrix(X), Y, use.nlm=FALSE)$beta,
-      times=10
-    )
-    
-    
-    
-    
-  }
-  
-  
-  if(FALSE){
-    ii <- pvec.list[[d]]
-    X=U.joint[,-1]
-    Y=X_joint[,ii]
-    Offset=Theta.inds[,ii]
-    
-    beta0=NULL; maxit=1000; eps=1e-8; standardize=TRUE
-  }
-  
-  
   
   
   
@@ -192,22 +138,10 @@ sphereGLM <- function(X, Y, MU=NULL, Offset=NULL, beta0=NULL, maxit=100, eps=1e-
   } else {
     
     
-    # start_time <- proc.time()[3]
-    # tt <- 0
-    # 
-    # 
-    # part_time <- proc.time()[3]
-    # tt <- tt+1
-    # cat("Part ", tt, " time:", part_time - start_time, "\n")
-    # start_time <- part_time
-    
-    
-    
     
     if(is.null(Offset)){
       Offset <- matrix(0,n,q)
     }
-    
     
     
     if(is.null(MU)){
@@ -244,7 +178,7 @@ sphereGLM <- function(X, Y, MU=NULL, Offset=NULL, beta0=NULL, maxit=100, eps=1e-
     
     {
       B0 <- lm(Y ~ -1 + X, offset=tcrossprod(rep(1,n),MU)+Offset) %>% coef
-      beta <- as.vector(rbind(MU, B0))
+      beta <- as.vector(t(rbind(MU, B0)))
     }
     
     
@@ -253,7 +187,7 @@ sphereGLM <- function(X, Y, MU=NULL, Offset=NULL, beta0=NULL, maxit=100, eps=1e-
     
     X1 <- cbind(1, X)
     
-    Xt.list <- apply(X1, 1, function(Xi) kronecker(diag(1,q), Xi), simplify=FALSE) # [pq x q] x 100
+    Xt.list <- apply(X1, 1, function(Xi) kronecker(Xi, diag(1,q)), simplify=FALSE) # [pq x q] x 100
     Xt <- do.call("cbind", Xt.list) # pq x qn
     yt <- as.vector(t(Y))
     
@@ -280,11 +214,16 @@ sphereGLM <- function(X, Y, MU=NULL, Offset=NULL, beta0=NULL, maxit=100, eps=1e-
       Z <- crossprod(Xt, beta) + solve(W + diag.matrix(W, lambda)) %*% (yt - eta)
       
       # (beta <- chol2inv(chol(Xt %*% W %*% t(Xt))) %*% Xt %*% W %*% Z)
+      
+      mu <- beta[1:q]
       XWX <- Xt %*% W %*% t(Xt)
-      beta <- solve(XWX + Matrix::bdiag( 0, diag.matrix(XWX[-1,-1], lambda) ) ) %*% Xt %*% W %*% Z
       
-      # beta <- solve(Xt %*% W %*% t(Xt) + diag(lambda2,q*(p+1),q*(p+1))) %*% Xt %*% W %*% Z
-      
+      if(orthogonal){
+        gamma <- 9999
+        beta <- solve( XWX +  gamma * Matrix::bdiag(append(list(matrix(0,q,q)), replicate(p, tcrossprod(mu), simplify=FALSE))) ) %*% Xt %*% W %*% Z
+      } else {
+        beta <- solve(XWX + Matrix::bdiag( 0, diag.matrix(XWX[-1,-1], lambda) ) ) %*% Xt %*% W %*% Z
+      }
       
       beta_new <- beta
       
@@ -311,11 +250,11 @@ sphereGLM <- function(X, Y, MU=NULL, Offset=NULL, beta0=NULL, maxit=100, eps=1e-
     
     
     
-    beta.list <- lapply(beta.list, function(bb) matrix(bb, p+1, q, byrow=FALSE) )
-    beta_new <- matrix(beta_new, p+1, q, byrow=FALSE)
+    beta.list2 <- lapply(beta.list, function(bb) matrix(bb, p+1, q, byrow=TRUE) )
+    beta_new <- matrix(beta_new, p+1, q, byrow=TRUE)
     
     if(standardize){
-      beta.list <- lapply(beta.list, function(b) magic::adiag(1, sdx.inv) %*% b)
+      beta.list2 <- lapply(beta.list2, function(b) magic::adiag(1, sdx.inv) %*% b)
       beta_new <- magic::adiag(1, sdx.inv) %*% beta_new
     }
     
@@ -325,7 +264,7 @@ sphereGLM <- function(X, Y, MU=NULL, Offset=NULL, beta0=NULL, maxit=100, eps=1e-
     result <- list(X=X0, Y=Y, mu=beta_new[1,],
                    beta=beta_new,
                    beta2=beta_new,
-                   beta.list=beta.list,
+                   beta.list=beta.list2,
                    offset=Offset,
                    loglik.list=loglik.list[-1], 
                    crit.list=crit.list[-1])  
@@ -335,7 +274,7 @@ sphereGLM <- function(X, Y, MU=NULL, Offset=NULL, beta0=NULL, maxit=100, eps=1e-
   
   
   
-  params <- list( MU=MU, Offset=Offset, beta0=beta0, maxit=maxit, eps=eps, standardize=standardize, use.nlm=use.nlm )
+  params <- list( MU=MU, Offset=Offset, maxit=maxit, eps=eps, standardize=standardize, orthogonal=TRUE, use.nlm=use.nlm )
   
   
   result$beta2[-1,] <- t( apply(result$beta2[-1,,drop=F], 1, function(x) x/norm(result$beta2[1,], "2")) )

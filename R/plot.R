@@ -6,16 +6,16 @@ png.sphere.grid <- function (radius = 1, col.long = "red", col.lat = "blue", deg
   }
   
   
-  if(FALSE){
-    library(sphereplot)
-    sphereplot::pointsphere()
-    
-    rgl.sphgrid()
-    rgl.sphpoints(pointsphere(100,c(0,90),c(0,45),c(0.25,0.8)),deg=T)
-    
-    rgl.sphgrid(radaxis=F, radlab=F)
-    rgl.sphpoints(40,50,0.5,deg=TRUE,col='red',cex=2)
-  }
+  # if(FALSE){
+  #   library(sphereplot)
+  #   sphereplot::pointsphere()
+  #   
+  #   rgl.sphgrid()
+  #   rgl.sphpoints(pointsphere(100,c(0,90),c(0,45),c(0.25,0.8)),deg=T)
+  #   
+  #   rgl.sphgrid(radaxis=F, radlab=F)
+  #   rgl.sphpoints(40,50,0.5,deg=TRUE,col='red',cex=2)
+  # }
   
   
   
@@ -79,13 +79,13 @@ png.sphere.grid <- function (radius = 1, col.long = "red", col.lat = "blue", deg
 
 
 #' @export png.sphere
-png.sphere <- function(df, col="red", cex=0.01, opacity=TRUE, add=FALSE, main=NULL, cex.main=2, position="topleft"){
+png.sphere <- function(df, col="red", cex=0.01, opacity=TRUE, add=FALSE, main=NULL, main.cex=2, main.position="topleft"){
   
   if(FALSE){
     df=Y; col=col1; opacity=opacity; add=add
     cex=0.01; axis.arrange=FALSE
     main <- "This is the main title"
-    cex.main=2
+    main.cex <- 2
   }
   
   library(rgl)
@@ -158,7 +158,7 @@ png.sphere <- function(df, col="red", cex=0.01, opacity=TRUE, add=FALSE, main=NU
     }
     
   
-  if(!is.null(main)) legend3d(position, legend = main, adj=0.1, cex=cex.main, bty="n", border = FALSE)
+  if(!is.null(main)) legend3d(main.position, legend = main, adj=0.1, cex=main.cex, bty="n", border = FALSE)
   
   # legend3d("topright", legend = paste('Type', c('A', 'B', 'C')), pch = 16, col = rainbow(3), cex=1, inset=c(0.02))
   
@@ -238,11 +238,12 @@ png.sph2coord <- function (long, lat, radius = 1, deg = TRUE){
 
 
 #' @export plot.sphereGLM
-plot.sphereGLM <- function(fit, cex=0.01, opacity=FALSE, plot.mu=FALSE, col=NULL, add=FALSE, main=NULL, ...){
+plot.sphereGLM <- function(fit, plot.mu=TRUE, cex=0.01, opacity=FALSE, col=NULL, add=FALSE, main=NULL, ...){
   
   if(FALSE){
     opacity=FALSE
     plot.mu = T
+    plot.mu=TRUE; cex=0.01; opacity=FALSE; col=NULL; add=FALSE; main=NULL; ...=NULL
   }
   
   if(FALSE){
@@ -361,11 +362,13 @@ plot.sphereGLM <- function(fit, cex=0.01, opacity=FALSE, plot.mu=FALSE, col=NULL
   
   
   
-  
+  X <- fit$X
   Y <- fit$Y
-  mu <- fit$beta[1,,drop=T]
-  beta <- fit$beta[-1,,drop=FALSE]
-  beta <- apply(beta, 1, function(x) x / norm(mu, "2")) %>% t()
+  mu <- fit$beta2[1,,drop=T]
+  beta <- fit$beta2[-1,,drop=FALSE]
+  
+  n <- nrow(Y)
+  
   mu <- mu / norm(mu, "2")
   
   # For better visualization
@@ -380,6 +383,18 @@ plot.sphereGLM <- function(fit, cex=0.01, opacity=FALSE, plot.mu=FALSE, col=NULL
     col1 <- "red"
     col2 <- "blue"
     col3 <- "purple"
+    
+    value_to_color <- function(value, min_val, max_val) {
+      scaled <- (value - min_val) / (max_val - min_val)
+      r <- 1 - scaled
+      g <- 0
+      b <- scaled
+      rgb(r, g, b)
+    }
+    # blue: high; red: low
+    
+    col1 <- value_to_color(X, min(X), max(X))
+    
   } else {
     
     

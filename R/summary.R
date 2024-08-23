@@ -3,6 +3,11 @@ summary.sphereGLM <- function(fit){
   
   X <- fit$X
   Y <- fit$Y
+  
+  p <- ncol(X)
+  q <- ncol(Y)
+  n <- nrow(Y)
+  
   beta2 <- fit$beta2
   
   F_nj.list <- FisherInfoMatrix(X, beta2)

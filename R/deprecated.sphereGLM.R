@@ -1,9 +1,20 @@
 #' @importFrom manifold frechetMean createM
 #' @importFrom magic adiag
 #' @importFrom dplyr `%>%`
-#' @export sphereGLM.v2
-
-sphereGLM.v2 <- function(X, Y, MU = NULL, Offset = NULL, beta0 = NULL, maxit = 100, eps = 1e-6, standardize = TRUE, lambda = 1e-4, use.nlm = TRUE) {
+#' 
+#' @export deprecated.sphereGLM
+deprecated.sphereGLM <- function(X, Y, MU = NULL, Offset = NULL, beta0 = NULL, 
+                         maxit = 100, eps = 1e-6, standardize = TRUE, lambda = 1e-4, 
+                         use.nlm = TRUE) {
+  if(FALSE){
+    X <- simdata1$X
+    Y <- simdata1$Y
+    MU = NULL; Offset = NULL; beta0 = NULL;
+    maxit = 100; eps = 1e-6; standardize = TRUE; lambda = 1e-4;
+    use.nlm = TRUE
+  }
+  
+  
   X <- as.matrix(X)
   Y <- as.matrix(Y)
   X1 <- cbind(1, X)
@@ -86,14 +97,14 @@ sphereGLM.v2 <- function(X, Y, MU = NULL, Offset = NULL, beta0 = NULL, maxit = 1
       
       theta_list <- lapply(seq_len(n), function(i) Offset[i,] + crossprod(Xt_list[[i]], beta_old))
       eta <- do.call(rbind, lapply(theta_list, b1.vMF))
-      W <- bdiag(lapply(theta_list, b2.vMF))
+      W <- Matrix::bdiag(lapply(theta_list, b2.vMF))
       
       Z <- crossprod(Xt, beta_old) + solve(W + diag(lambda, nrow(W))) %*% (yt - as.vector(eta))
       
       XWX <- Xt %*% W %*% t(Xt)
-      beta_new <- solve(XWX + bdiag(0, diag(lambda, q * p))) %*% (Xt %*% W %*% Z)
+      beta_new <- solve(XWX + Matrix::bdiag(0, diag(lambda, nrow(XWX)-1))) %*% (Xt %*% W %*% Z)
       
-      loglik <- sum(mapply(function(theta, y) sum(theta * y) + Cq(theta, log = TRUE), theta_list, asplit(Y, 1)))
+      loglik <- sum(mapply(function(theta, y) sum(theta * y) + Cq(theta, log = TRUE), theta_list, apply(Y, 1, c, simplify=FALSE)))
       
       crit <- sqrt(sum((beta_old - beta_new)^2))
       

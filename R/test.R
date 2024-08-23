@@ -1,14 +1,7 @@
 if(FALSE){
   
-  
-  
-  
-  
-  
-  
-  
-  
   load("/Users/png/Library/CloudStorage/Dropbox/1. JSK/3. GLM using vMF/RealData/Sungkyu_Data_2024/LP_DS_Rep_Data.Rdata")
+  
   
   library(dplyr)
   
