@@ -1,3 +1,3 @@
 # sphereGLM
 
-Generalized linear model for a spherical response following von Mises-Fisher distribution including relevant functions
+Generalized linear model for spherical responses following von Mises-Fisher distribution, including its relevant functions
