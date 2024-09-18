@@ -1,5 +1,18 @@
-#' @export summary.sphereGLM
-summary.sphereGLM <- function(fit){
+#' @method summary sphereGLM
+#' @export 
+summary.sphereGLM <- function(fit, scale=FALSE, orthogonal=NULL){
+  
+  if( class(fit) == "try-error" ){
+    return( list(beta=NA,
+                 norm=NA, 
+                 fisher=NA,
+                 wald=NA,
+                 pvalue=NA) )
+  }
+  
+  if(is.null(orthogonal)){
+    orthogonal <- fit$params$orthogonal
+  }
   
   X <- fit$X
   Y <- fit$Y
@@ -8,26 +21,41 @@ summary.sphereGLM <- function(fit){
   q <- ncol(Y)
   n <- nrow(Y)
   
-  beta2 <- fit$beta2
+  if( scale ){
+    beta_new <- fit$beta2
+  } else {
+    beta_new <- fit$beta
+  }
   
-  F_nj.list <- FisherInfoMatrix(X, beta2)
   
-  Wj.list <- sapply(1:(p+1), function(j){
-    t(beta2[j,]) %*% F_nj.list[[j]] %*% beta2[j,]
+  F_nj.list <- FisherInfoMatrix(X, beta_new)
+  
+  Wald.j.list <- sapply(1:(p+1), function(j){
+    t(beta_new[j,]) %*% F_nj.list[[j]] %*% beta_new[j,]
   })
   
   
-  pv.list <- sapply(Wj.list, function(x){
-    1 - pchisq(x, q)
+  if(orthogonal){
+    df <- q-1
+  } else {
+    df <- q
+  }
+  
+  
+  pv.list <- sapply(Wald.j.list, function(x){
+    1 - pchisq(x, df)
   })
   
   
   
   
-  list(beta=beta2,
-       norm=apply(beta2, 1, norm, "2"), 
-       Wald=Wj.list,
-       p.value=pv.list)
+  list(beta=beta_new,
+       norm=apply(beta_new, 1, norm, "2"), 
+       fisher=F_nj.list,
+       orthogonal=fit$params$orthogonal,
+       wald=Wald.j.list,
+       df=df,
+       pvalue=pv.list)
   
 }
 

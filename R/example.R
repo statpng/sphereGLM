@@ -11,6 +11,24 @@ if(FALSE){
   fit1 <- with(simdata, sphereGLM(X=X, Y=Y, orthogonal=TRUE))
   fit2 <- with(simdata, sphereGLM(X=X, Y=Y, orthogonal=FALSE))
   
+  n=nrow(simdata$Y);  q=ncol(simdata$Y)
+  
+  
+  {
+    library(dplyr)
+    X=cbind(1,simdata$X); Y=simdata$Y; MU <- simdata$mu; 
+    n=nrow(Y); q=ncol(Y); Offset <- matrix(0, n, q)
+    beta <- lm(Y ~ -1 + X, offset=tcrossprod(rep(1,n),MU)+Offset) %>% coef %>% 
+      { as.vector(t(rbind(MU, .))) }
+    
+    
+    
+  }
+  
+  
+  sphereGLM_iteration(X=X, Y=Y, beta=beta, orthogonal=TRUE, Offset=matrix(0, n, q), maxit=100, eps=1e-6, lambda=5e-3)
+  
+  
   plot.sphereGLM(fit1)
   plot.sphereGLM(fit2)
   

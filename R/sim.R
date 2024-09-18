@@ -1,6 +1,6 @@
 #' @importFrom Directional rvmf
 #' @export sim.sphereGLM
-sim.sphereGLM <- function(n=50, p=1, q=3, mu=c(0,0,1), snr=NULL, s=2, s0=0, type=c("vMF", "Proj", "ExpMap"), seed.UDV=1, seed.E=NULL){
+sim.sphereGLM <- function(n=50, p=1, q=3, mu=c(0,0,1), snr=NULL, s=2, s0=0, type=c("vMF", "Proj", "ExpMap"), seed.UDV=1, seed.E=NULL, qr.U=FALSE, qr.V=FALSE){
   # typeA = "sparse", typeB = "all", n = 50, p = 10, q = 10, 
   #  d = 3, rvec = NULL, nuA = 0.2, nuB = 0.5, d0 = 3, es = "1", 
   #  es.B = 1, snr = 1, simplify = TRUE, sigma = NULL, rho_X = 0.5, 
@@ -17,7 +17,6 @@ sim.sphereGLM <- function(n=50, p=1, q=3, mu=c(0,0,1), snr=NULL, s=2, s0=0, type
   
   
   
-  
   if(is.null(seed.E)){
     seed.E <- sample( setdiff(1:1000, seed.UDV), 1 )
   }
@@ -31,11 +30,17 @@ sim.sphereGLM <- function(n=50, p=1, q=3, mu=c(0,0,1), snr=NULL, s=2, s0=0, type
   set.seed(seed.UDV)
   D <- sapply(1:p, function(k) (s/k^2 + s0))
   
-  V.tmp <- do.call("cbind", lapply(1:p, function(x) rnorm(q)))
-  V <- qr.Q(qr( cbind(mu, V.tmp) ))[,-1] %*% diag(D,p,p)
+  V <- do.call("cbind", lapply(1:p, function(x) rnorm(q)))
+  if(qr.V){
+    # original_lengths <- sqrt(colSums(V^2))
+    V <- qr.Q(qr( cbind(mu, V) ))[,-1] #%*% diag(original_lengths, ncol(V), ncol(V))
+  } else {
+    V <- apply(V, 2, function(v) v/norm(v, "2"))
+  }
+  V <- V %*% diag(D,p,p)
   
-  U.tmp <- do.call("cbind", lapply(1:p, function(x) rnorm(n)))
-  U <- qr.Q(qr( U.tmp ))
+  U <- do.call("cbind", lapply(1:p, function(x) rnorm(n)))
+  if(qr.U) U <- qr.Q(qr( U ))
   
   # U <- matrix(0,n,p)
   # for( k in 1:p ){
@@ -172,5 +177,29 @@ sim.sphere.nonlinear <- function(n){
 
 
 
+
+
+#' @export orthogonalize_vectors
+orthogonalize_vectors <- function(mu, vectors) {
+  # Ensure mu is a column vector
+  mu <- as.matrix(mu)
+  if (ncol(mu) != 1) mu <- t(mu)
+  
+  # Combine mu and vectors into a matrix
+  X <- cbind(mu, vectors)
+  
+  # Perform QR decomposition
+  qr_result <- qr(X)
+  Q <- qr.Q(qr_result)
+  
+  # Extract the orthogonalized vectors (excluding the first column which corresponds to mu)
+  orthogonalized <- Q[, -1, drop = FALSE]
+  
+  # Rescale the orthogonalized vectors to preserve their original lengths
+  original_lengths <- sqrt(colSums(vectors^2))
+  rescaled <- orthogonalized %*% diag(original_lengths)
+  
+  return(rescaled)
+}
 
 

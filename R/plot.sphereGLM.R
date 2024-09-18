@@ -1,3 +1,219 @@
+#' @method plot sphereGLM
+#' @export
+plot.sphereGLM <- function(fit, plot.mu=TRUE, cex=0.01, opacity=FALSE, col=NULL, add=FALSE, main=NULL, ...){
+  
+  if(FALSE){
+    opacity=FALSE
+    plot.mu = T
+    plot.mu=TRUE; cex=0.01; opacity=FALSE; col=NULL; add=FALSE; main=NULL; ...=NULL
+  }
+  
+  if(FALSE){
+    
+    set.seed(1)
+    fit1 <- sim.sphereGLM(n=150, mu=c(0,0,1), r=2, s=5, s0 = 0.01) %>% 
+      with(sphereGLM(X[,1], Y))
+    fit2 <- sim.sphereGLM(n=150, mu=c(0,1,0), r=2, s=5, s0 = 0.01) %>% 
+      with(sphereGLM(X[,1], Y))
+    
+    plot.sphereGLM(fit1, plot.mu = T, col="red", opacity=F, cex=0.01, main="abc")
+    plot.sphereGLM(fit2, plot.mu = T, col="blue", add=TRUE, opacity=F)
+    #
+    
+  }
+  
+  
+  
+  
+  if(FALSE){
+    
+    library(png.Directional)
+    library(sphereGLM)
+    library(dplyr)
+    
+    
+    # Figure 1
+    {
+      set.seed(2)
+      simdata <- sim.sphereGLM(n=150, mu=c(1/sqrt(3),1/sqrt(3),1/sqrt(3)) %>% {./norm(.,"2")}, snr=100, r=2, s=3, s0 = 0.0001, type="Proj")
+      X <- simdata$X;  Y <- simdata$Y
+      fit <- sphereGLM(X, Y)
+      
+      plot.sphereGLM(fit, plot.mu=TRUE)
+      
+      fit
+    }
+    
+    
+    # Figure 2
+    {
+      set.seed(2)
+      simdata <- sim.sphereGLM(n=150, mu=c(1/sqrt(3),1/sqrt(3),1/sqrt(3)) %>% {./norm(.,"2")}, snr=100, r=1, s=10, s0 = 0.0001, type="Proj")
+      X <- simdata$X;  Y <- simdata$Y
+      fit <- sphereGLM(X, Y)
+      
+      plot.sphereGLM(fit, plot.mu=TRUE)
+      
+      fit
+    }
+    
+    
+    # Figure 3
+    {
+      set.seed(1)
+      simdata1 <- sim.sphereGLM(n=150, mu=c(1/sqrt(3),1/sqrt(3),1/sqrt(3))*50, r=1, s=100, s0 = 0.0001, type="Proj")
+      
+      set.seed(1)
+      simdata1 <- sim.sphereGLM(n=150, mu=c(1/sqrt(3),1/sqrt(3),1/sqrt(3))*50, r=1, s=100, s0 = 0.0001, type="vMF")
+      set.seed(1)
+      simdata2 <- sim.sphereGLM(n=150, mu=c(10/sqrt(3),10/sqrt(3),10/sqrt(3))*150, r=1, s=500, s0 = 0.0001, type="vMF")
+      
+      fit1 <- glm.vmf(simdata1$U, simdata1$X)
+      fit2 <- glm.vmf(simdata2$U, simdata2$X)
+      
+      glm.vmf.plot(fit1, plot.mu=TRUE)
+      glm.vmf.plot(fit2, plot.mu=FALSE)
+      
+      fit1
+      fit2
+      
+    }
+    
+    
+  }
+  
+  
+  # Function to project a point onto a plane
+  project_to_plane <- function(point, plane_normal, plane_point) {
+    # Extract the components of the point
+    x <- point[1]
+    y <- point[2]
+    z <- point[3]
+    
+    # Extract the components of the plane normal vector
+    a <- plane_normal[1]
+    b <- plane_normal[2]
+    c <- plane_normal[3]
+    
+    # Extract the components of a point on the plane
+    x0 <- plane_point[1]
+    y0 <- plane_point[2]
+    z0 <- plane_point[3]
+    
+    # Calculate the projection
+    t <- (a * (x0 - x) + b * (y0 - y) + c * (z0 - z)) / (a^2 + b^2 + c^2)
+    
+    # Calculate the projected point
+    x_proj <- x + t * a
+    y_proj <- y + t * b
+    z_proj <- z + t * c
+    
+    return(c(x_proj, y_proj, z_proj))
+  }
+  
+  
+  
+  # 외적을 계산하는 함수 정의
+  cross_product <- function(a, b) {
+    c(
+      a[2] * b[3] - a[3] * b[2],
+      a[3] * b[1] - a[1] * b[3],
+      a[1] * b[2] - a[2] * b[1]
+    )
+  }
+  
+  
+  
+  X <- fit$X
+  Y <- fit$Y
+  mu <- fit$beta2[1,,drop=T]
+  beta <- fit$beta2[-1,,drop=FALSE]
+  
+  n <- nrow(Y)
+  
+  mu <- mu / norm(mu, "2")
+  
+  # For better visualization
+  beta <- apply(beta, 1, function(x) x / norm(x, "2") ) %>% t()
+  
+  
+  # rgl::planes3d(0,0,1,1, alpha=0.2)
+  MU <- tcrossprod(rep(1,nrow(beta)), mu)
+  
+  
+  if(is.null(col)){
+    col1 <- "red"
+    col2 <- "blue"
+    col3 <- "purple"
+    
+    value_to_color <- function(value, min_val, max_val) {
+      scaled <- (value - min_val) / (max_val - min_val)
+      r <- 1 - scaled
+      g <- 0
+      b <- scaled
+      rgb(r, g, b)
+    }
+    # blue: high; red: low
+    
+    col1 <- value_to_color(X, min(X), max(X))
+    
+  } else {
+    
+    
+    {
+      a1 <- col2rgb(col)
+      a2 <- rgb2hsv(a1)
+      pastel_col1 <- hsv(a2[1,], a2[2,]*0.9, a2[3,])
+      pastel_col2 <- hsv(a2[1,], a2[2,]*0.7, a2[3,])
+      pastel_col3 <- hsv(a2[1,], a2[2,]*0.5, a2[3,])
+      hue <- a2["h",]*360
+      n <- 0.4
+      pastel_col4 <- hcl(hue, 35, 85)
+    }
+    
+    col1 <- pastel_col1
+    col2 <- pastel_col2
+    col3 <- pastel_col3
+  }
+  
+  
+  
+  
+  
+  png.sphere(Y, col=col1, opacity=opacity, add=add, cex=cex, main=main, ...)
+  
+  
+  if(nrow(beta)>1){
+    normal_vector <- project_to_plane(c(0,0,0), cross_product(beta[1,], beta[2,]), mu)
+    rgl::planes3d(a=normal_vector, d=-sum(normal_vector * mu), alpha=0.1, add=TRUE)
+    # rgl::abclines3d(mu[1],mu[2],mu[3], beta, alpha=0.5, col="blue", lwd=2)
+  }
+  
+  
+  for( k in 1:nrow(MU) ){
+    rgl::arrow3d(MU[k,]-beta[k,], MU[k,]+beta[k,], type=c("lines", "rotation")[1], col=col2, s=0.05, barblen=0.03, width=0.5, add=TRUE, n=100)
+  }
+  
+  
+  
+  if(plot.mu){
+    
+    switch(3,
+           `1`=rgl::arrow3d(c(0,0,0), mu, type=c("lines", "rotation")[1], col=col3, s=0.1, barblen=0.05, width=0.5, add=TRUE),
+           `2`=rgl::arrow3d(c(0,0,0), mu, type=c("lines", "rotation")[2], col=col3, s=0.1, barblen=0.05, width=0.1, add=TRUE),
+           `3`=rgl::arrow3d(c(0,0,0), mu, type=c("lines", "rotation")[1], col=col3, n=100, s=0.02, barblen=0.03, width=0.1, add=TRUE)
+    )
+    
+  }
+  
+  
+  
+  
+  
+}
+
+
+
 #' @export png.sphere.grid
 png.sphere.grid <- function (radius = 1, col.long = "red", col.lat = "blue", deggap = 15, longtype = "H", add = FALSE, radaxis = TRUE, radlab = "Radius"){
   if(FALSE){
@@ -234,218 +450,3 @@ png.sph2coord <- function (long, lat, radius = 1, deg = TRUE){
 
 
 
-
-
-
-#' @export plot.sphereGLM
-plot.sphereGLM <- function(fit, plot.mu=TRUE, cex=0.01, opacity=FALSE, col=NULL, add=FALSE, main=NULL, ...){
-  
-  if(FALSE){
-    opacity=FALSE
-    plot.mu = T
-    plot.mu=TRUE; cex=0.01; opacity=FALSE; col=NULL; add=FALSE; main=NULL; ...=NULL
-  }
-  
-  if(FALSE){
-    
-    set.seed(1)
-    fit1 <- sim.sphereGLM(n=150, mu=c(0,0,1), r=2, s=5, s0 = 0.01) %>% 
-      with(sphereGLM(X[,1], Y))
-    fit2 <- sim.sphereGLM(n=150, mu=c(0,1,0), r=2, s=5, s0 = 0.01) %>% 
-      with(sphereGLM(X[,1], Y))
-    
-    plot.sphereGLM(fit1, plot.mu = T, col="red", opacity=F, cex=0.01, main="abc")
-    plot.sphereGLM(fit2, plot.mu = T, col="blue", add=TRUE, opacity=F)
-    #
-    
-  }
-  
-  
-  
-  
-  if(FALSE){
-    
-    library(png.Directional)
-    library(sphereGLM)
-    library(dplyr)
-    
-    
-    # Figure 1
-    {
-      set.seed(2)
-      simdata <- sim.sphereGLM(n=150, mu=c(1/sqrt(3),1/sqrt(3),1/sqrt(3)) %>% {./norm(.,"2")}, snr=100, r=2, s=3, s0 = 0.0001, type="Proj")
-      X <- simdata$X;  Y <- simdata$Y
-      fit <- sphereGLM(X, Y)
-      
-      plot.sphereGLM(fit, plot.mu=TRUE)
-      
-      fit
-    }
-    
-    
-    # Figure 2
-    {
-      set.seed(2)
-      simdata <- sim.sphereGLM(n=150, mu=c(1/sqrt(3),1/sqrt(3),1/sqrt(3)) %>% {./norm(.,"2")}, snr=100, r=1, s=10, s0 = 0.0001, type="Proj")
-      X <- simdata$X;  Y <- simdata$Y
-      fit <- sphereGLM(X, Y)
-      
-      plot.sphereGLM(fit, plot.mu=TRUE)
-      
-      fit
-    }
-    
-    
-    # Figure 3
-    {
-      set.seed(1)
-      simdata1 <- sim.sphereGLM(n=150, mu=c(1/sqrt(3),1/sqrt(3),1/sqrt(3))*50, r=1, s=100, s0 = 0.0001, type="Proj")
-      
-      set.seed(1)
-      simdata1 <- sim.sphereGLM(n=150, mu=c(1/sqrt(3),1/sqrt(3),1/sqrt(3))*50, r=1, s=100, s0 = 0.0001, type="vMF")
-      set.seed(1)
-      simdata2 <- sim.sphereGLM(n=150, mu=c(10/sqrt(3),10/sqrt(3),10/sqrt(3))*150, r=1, s=500, s0 = 0.0001, type="vMF")
-      
-      fit1 <- glm.vmf(simdata1$U, simdata1$X)
-      fit2 <- glm.vmf(simdata2$U, simdata2$X)
-      
-      glm.vmf.plot(fit1, plot.mu=TRUE)
-      glm.vmf.plot(fit2, plot.mu=FALSE)
-      
-      fit1
-      fit2
-      
-    }
-    
-    
-  }
-  
-  
-  # Function to project a point onto a plane
-  project_to_plane <- function(point, plane_normal, plane_point) {
-    # Extract the components of the point
-    x <- point[1]
-    y <- point[2]
-    z <- point[3]
-    
-    # Extract the components of the plane normal vector
-    a <- plane_normal[1]
-    b <- plane_normal[2]
-    c <- plane_normal[3]
-    
-    # Extract the components of a point on the plane
-    x0 <- plane_point[1]
-    y0 <- plane_point[2]
-    z0 <- plane_point[3]
-    
-    # Calculate the projection
-    t <- (a * (x0 - x) + b * (y0 - y) + c * (z0 - z)) / (a^2 + b^2 + c^2)
-    
-    # Calculate the projected point
-    x_proj <- x + t * a
-    y_proj <- y + t * b
-    z_proj <- z + t * c
-    
-    return(c(x_proj, y_proj, z_proj))
-  }
-  
-  
-  
-  # 외적을 계산하는 함수 정의
-  cross_product <- function(a, b) {
-    c(
-      a[2] * b[3] - a[3] * b[2],
-      a[3] * b[1] - a[1] * b[3],
-      a[1] * b[2] - a[2] * b[1]
-    )
-  }
-  
-  
-  
-  X <- fit$X
-  Y <- fit$Y
-  mu <- fit$beta2[1,,drop=T]
-  beta <- fit$beta2[-1,,drop=FALSE]
-  
-  n <- nrow(Y)
-  
-  mu <- mu / norm(mu, "2")
-  
-  # For better visualization
-  beta <- apply(beta, 1, function(x) x / norm(x, "2") ) %>% t()
-  
-  
-  # rgl::planes3d(0,0,1,1, alpha=0.2)
-  MU <- tcrossprod(rep(1,nrow(beta)), mu)
-  
-  
-  if(is.null(col)){
-    col1 <- "red"
-    col2 <- "blue"
-    col3 <- "purple"
-    
-    value_to_color <- function(value, min_val, max_val) {
-      scaled <- (value - min_val) / (max_val - min_val)
-      r <- 1 - scaled
-      g <- 0
-      b <- scaled
-      rgb(r, g, b)
-    }
-    # blue: high; red: low
-    
-    col1 <- value_to_color(X, min(X), max(X))
-    
-  } else {
-    
-    
-    {
-      a1 <- col2rgb(col)
-      a2 <- rgb2hsv(a1)
-      pastel_col1 <- hsv(a2[1,], a2[2,]*0.9, a2[3,])
-      pastel_col2 <- hsv(a2[1,], a2[2,]*0.7, a2[3,])
-      pastel_col3 <- hsv(a2[1,], a2[2,]*0.5, a2[3,])
-      hue <- a2["h",]*360
-      n <- 0.4
-      pastel_col4 <- hcl(hue, 35, 85)
-    }
-    
-    col1 <- pastel_col1
-    col2 <- pastel_col2
-    col3 <- pastel_col3
-  }
-  
-  
-  
-  
-  
-  png.sphere(Y, col=col1, opacity=opacity, add=add, cex=cex, main=main, ...)
-  
-  
-  if(nrow(beta)>1){
-    normal_vector <- project_to_plane(c(0,0,0), cross_product(beta[1,], beta[2,]), mu)
-    rgl::planes3d(a=normal_vector, d=-sum(normal_vector * mu), alpha=0.1, add=TRUE)
-    # rgl::abclines3d(mu[1],mu[2],mu[3], beta, alpha=0.5, col="blue", lwd=2)
-  }
-  
-  
-  for( k in 1:nrow(MU) ){
-    rgl::arrow3d(MU[k,]-beta[k,], MU[k,]+beta[k,], type=c("lines", "rotation")[1], col=col2, s=0.05, barblen=0.03, width=0.5, add=TRUE, n=100)
-  }
-  
-  
-  
-  if(plot.mu){
-    
-    switch(3,
-           `1`=rgl::arrow3d(c(0,0,0), mu, type=c("lines", "rotation")[1], col=col3, s=0.1, barblen=0.05, width=0.5, add=TRUE),
-           `2`=rgl::arrow3d(c(0,0,0), mu, type=c("lines", "rotation")[2], col=col3, s=0.1, barblen=0.05, width=0.1, add=TRUE),
-           `3`=rgl::arrow3d(c(0,0,0), mu, type=c("lines", "rotation")[1], col=col3, n=100, s=0.02, barblen=0.03, width=0.1, add=TRUE)
-           )
-    
-  }
-  
-  
-  
-  
-  
-}
