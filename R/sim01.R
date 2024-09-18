@@ -42,7 +42,7 @@ sim01 <- function(){
   # GRID %>% head(20)
   # idx <- 5
   # simdata <- sphereGLM::sim.sphereGLM(n=GRID[idx,]$n.seq, p=GRID[idx,]$p.seq, q=GRID[idx,]$q.seq, mu=c(0,0,GRID[idx,]$mu.seq), snr=NULL, s=GRID[idx,]$s.seq, s0=0, type="vMF", seed.UDV=1, seed.E=idx)
-  # png.sphere(simdata$Y)
+  # plot.sphere(simdata$Y)
   # 
   # plot.sphereGLM(sphereGLM(X=simdata$X, Y=simdata$Y))
   

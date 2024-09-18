@@ -48,7 +48,7 @@ function(){
     library(dplyr)
     
     simdata1 <- sim.vMFglm(n=100, p=1, q=3, sd=50, mu=c(0,0,100), orthogonal=T)
-    # simdata1$Y %>% png.sphere()
+    # simdata1$Y %>% plot.sphere()
     fit1 <- simdata1 %>% { glm_vmf_FixedMean_Offset2(X=.$X, Y=.$Y, lambda=1e-4, eps=1e-16) }
     list(simdata1, fit1) %>% {
       rbind(.[[1]]$B, .[[2]]$beta)
@@ -61,7 +61,7 @@ function(){
   function(){
     
     simdata1 <- sim.vMFglm(n=100, p=1, q=3, sd=50, mu=c(0,100,100), orthogonal=T)
-    # simdata1$Y %>% png.sphere()
+    # simdata1$Y %>% plot.sphere()
     fit1 <- simdata1 %>% { glm_vmf_FixedMean_Offset2(X=.$X, Y=.$Y, lambda=1e-4, eps=1e-16) }
     list(simdata1, fit1) %>% {
       rbind(.[[1]]$B, .[[2]]$beta)
@@ -74,7 +74,7 @@ function(){
   function(){
     
     simdata3 <- sim.vMFglm(n=100, p=1, q=3, sd=15, mu=c(0,100,100), orthogonal=T)
-    # simdata3$Y %>% png.sphere()
+    # simdata3$Y %>% plot.sphere()
     fit3 <- simdata3 %>% { glm_vmf_FixedMean_Offset2(X=.$X, Y=.$Y, lambda=1e-4, eps=1e-16) }
     list(simdata3, fit3) %>% {
       rbind(.[[1]]$B, .[[2]]$beta)
@@ -87,7 +87,7 @@ function(){
   function(){
     
     simdata4 <- sim.vMFglm(n=100, p=1, q=3, sd=5, mu=c(0,100,100), orthogonal=T)
-    # simdata4$Y %>% png.sphere()
+    # simdata4$Y %>% plot.sphere()
     fit4 <- simdata4 %>% { glm_vmf_FixedMean_Offset2(X=.$X, Y=.$Y, lambda=1e-4, eps=1e-16) }
     list(simdata4, fit4) %>% {
       rbind(.[[1]]$B, .[[2]]$beta)
@@ -155,39 +155,39 @@ function(){
   devtools::load_all()
   
   simdata1 <- sim.vMFglm(n=100, p=1, q=3, sd=50, mu=c(0,0,100), orthogonal=T)
-  # simdata1$Y %>% png.sphere()
+  # simdata1$Y %>% plot.sphere()
   fit <- glm_vmf_FixedMean_Offset2(X=simdata1$X, Y=simdata1$Y, lambda=1e-4, eps=1e-16)
   rbind(simdata1$B, fit$beta)
   
   
   simdata2 <- sim.vMFglm(n=50, p=1, q=3, sd=50, mu=c(0,0,100), orthogonal=T)
-  # simdata2$Y %>% png.sphere()
+  # simdata2$Y %>% plot.sphere()
   fit <- glm_vmf_FixedMean_Offset2(X=simdata2$X, Y=simdata2$Y, lambda=1e-6, eps=1e-16)
   rbind(simdata2$B, fit$beta)
   
   
   simdata3 <- sim.vMFglm(n=50, p=1, q=3, sd=50, mu=c(0,0,500), orthogonal=T)
-  # simdata2$Y %>% png.sphere()
+  # simdata2$Y %>% plot.sphere()
   fit <- glm_vmf_FixedMean_Offset2(X=simdata3$X, Y=simdata3$Y, lambda=0, eps=1e-16)
   rbind(simdata3$B, fit$beta)
   
   
   
   simdata4 <- sim.vMFglm(n=50, p=1, q=3, sd=1000, mu=c(0,0,500), orthogonal=T)
-  # simdata4$Y %>% png.sphere()
+  # simdata4$Y %>% plot.sphere()
   fit <- glm_vmf_FixedMean_Offset2(X=simdata4$X, Y=simdata4$Y, lambda=0, eps=1e-16)
   rbind(simdata4$B, fit$beta)
   
   
   simdata5 <- sim.vMFglm(n=50, p=2, q=4, sd=500, mu=c(0,0,0,100), orthogonal=T)
-  # simdata5$Y %>% png.sphere()
+  # simdata5$Y %>% plot.sphere()
   fit <- glm_vmf_FixedMean_Offset2(X=simdata5$X, Y=simdata5$Y, lambda=0, eps=1e-16)
   rbind(simdata5$B, fit$beta)
   
   
   
   simdata6 <- sim.vMFglm(n=50, p=1, q=3, sd=5, mu=c(0,0,50), orthogonal=T)
-  # simdata6$Y %>% png.sphere()
+  # simdata6$Y %>% plot.sphere()
   fit <- glm_vmf_FixedMean_Offset2(X=simdata5$X, Y=simdata5$Y, lambda=0, eps=1e-16)
   rbind(simdata5$B, fit$beta)
 }
@@ -212,7 +212,7 @@ function(){
     for( i in 1:dim(out)[4] ){
       
       tau <- c(5,10,20,50,100)[j]
-      simdata <- sim.vMFglm(n=50, p=1, q=3, sd=100, mu=c(0,0,100), orthogonal=TRUE)  # png.sphere(simdata$Y)
+      simdata <- sim.vMFglm(n=50, p=1, q=3, sd=100, mu=c(0,0,100), orthogonal=TRUE)  # plot.sphere(simdata$Y)
       
       fit.GeodRegr <- with(simdata, GeodRegr::geo_reg("sphere", X, t(Y), estimator="l2", max_iter=1e+2))
       fit.vmf <- with(simdata, glm_vmf_FixedMean_Offset(X=X, Y=Y, MU=c(0,0,tau), lambda=1e-2, maxit=100, eps=1e-8, standardize=TRUE))

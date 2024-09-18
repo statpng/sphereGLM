@@ -7,8 +7,8 @@ sim.sphereGLM <- function(n=50, p=1, q=3, mu=c(0,0,1), snr=NULL, s=2, s0=0, type
   #  rho_E = 0
   
   if(FALSE){
-    with( sim.sphereGLM(p=1, mu=c(0,0,50), s=200), png.sphere(Y))
-    with( sim.sphereGLM(p=1, mu=c(0,0,1), snr=200, s=5, type="Proj"), png.sphere(Y))
+    with( sim.sphereGLM(p=1, mu=c(0,0,50), s=200), plot.sphere(Y))
+    with( sim.sphereGLM(p=1, mu=c(0,0,1), snr=200, s=5, type="Proj"), plot.sphere(Y))
   }
   
   if(FALSE){
@@ -95,8 +95,8 @@ sim.sphereGLM <- function(n=50, p=1, q=3, mu=c(0,0,1), snr=NULL, s=2, s0=0, type
     # Yproj <- (Theta + E) %>% apply(1, function(x) x/norm(x,"2")) %>% t
     # Yvmf <- Theta %>% apply(1, function(x) rvmf(1, x, k=norm(x,"2")) ) %>% t
     # {
-    #   png.sphere(Yvmf, opacity = FALSE, add=FALSE, cex=1)
-    #   png.sphere(Yproj, opacity = FALSE, add=TRUE, col="blue")
+    #   plot.sphere(Yvmf, opacity = FALSE, add=FALSE, cex=1)
+    #   plot.sphere(Yproj, opacity = FALSE, add=TRUE, col="blue")
     #   rgl::points3d(Theta+E, add=TRUE)
     # }
     

@@ -31,14 +31,14 @@ png.FrechetMean <- function(X, lr=1, maxit=1000, tol=1e-10, verbose=FALSE){
 }
 
 
-#' @export FrechetMean
+
 FrechetMean <- function(X, ...){
   manifold::frechetMean(manifold::createM("Sphere"), t(X), ...)
 }
 
 
 
-#' @export vMF.MuKappa
+
 vMF.MuKappa <- function(Y, kappa.type=4){
   n <- nrow(Y)
   q <- ncol(Y)
@@ -111,7 +111,7 @@ some.useful.functions <- function(x,y){
 
 
 
-#' @export LogmapSphere
+
 LogmapSphere <- function(mu, v) {
   # 두 점 사이의 각도 계산
   theta <- acos(sum(mu * v))
@@ -136,7 +136,7 @@ LogmapSphere <- function(mu, v) {
 
 
 
-#' @export Expmu
+
 Expmu <- function(mu, V) {
   n <- dim(V)[1]
   # lv <- mapply(function(x1, x2, x3) norm(c(x1, x2, x3), type="2"), V[, 1], V[, 2], V[, 3])
@@ -148,7 +148,7 @@ Expmu <- function(mu, V) {
 }
 
 
-#' @export Logmu
+
 Logmu <- function(mu, X){
   # library(GeodRegr)
   # t(apply(X, 1, function(x){
@@ -162,7 +162,7 @@ Logmu <- function(mu, X){
 }
 
 
-#' @export sphere.Frechet
+
 sphere.Frechet <- function(df){
   
   # df: n x 3 data.frame (x,y,z)
@@ -215,7 +215,7 @@ if(FALSE){
   library(manifold)
   detach("package:manifold", unload=TRUE)
   
-  manifold::runifSphere(100, 3) %>% t %>% png.sphere
+  manifold::runifSphere(100, 3) %>% t %>% plot.sphere
   
   
   manifold::frechetMean(createM("Sphere"), manifold::runifSphere(100, 3))

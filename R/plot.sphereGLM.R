@@ -180,7 +180,7 @@ plot.sphereGLM <- function(fit, plot.mu=TRUE, cex=0.01, opacity=FALSE, col=NULL,
   
   
   
-  png.sphere(Y, col=col1, opacity=opacity, add=add, cex=cex, main=main, ...)
+  plot.sphere(Y, col=col1, opacity=opacity, add=add, cex=cex, main=main, ...)
   
   
   if(nrow(beta)>1){
@@ -214,8 +214,13 @@ plot.sphereGLM <- function(fit, plot.mu=TRUE, cex=0.01, opacity=FALSE, col=NULL,
 
 
 
-#' @export png.sphere.grid
-png.sphere.grid <- function (radius = 1, col.long = "red", col.lat = "blue", deggap = 15, longtype = "H", add = FALSE, radaxis = TRUE, radlab = "Radius"){
+
+
+
+
+
+#' @export plot.sphere.grid
+plot.sphere.grid <- function (radius = 1, col.long = "red", col.lat = "blue", deggap = 15, longtype = "H", add = FALSE, radaxis = TRUE, radlab = "Radius"){
   if(FALSE){
     radius = 1; col.long = "red"; col.lat = "blue"; deggap = 15;
     longtype = "H"; add = FALSE; radaxis = TRUE; radlab = "Radius"
@@ -294,8 +299,10 @@ png.sphere.grid <- function (radius = 1, col.long = "red", col.lat = "blue", deg
 }
 
 
-#' @export png.sphere
-png.sphere <- function(df, col="red", cex=0.01, opacity=TRUE, add=FALSE, main=NULL, main.cex=2, main.position="topleft"){
+
+
+#' @export plot.sphere
+plot.sphere <- function(df, col="red", cex=0.01, opacity=TRUE, add=FALSE, main=NULL, main.cex=2, main.position="topleft"){
   
   if(FALSE){
     df=Y; col=col1; opacity=opacity; add=add
@@ -308,13 +315,13 @@ png.sphere <- function(df, col="red", cex=0.01, opacity=TRUE, add=FALSE, main=NU
   
   if(FALSE){
     set.seed(1)
-    png.sphere(sim.sphereGLM(n=100)$Y, col="red", opacity=TRUE, main="This is the main title")
-    png.sphere(sim.sphereGLM(n=100)$Y, col="blue", opacity=TRUE, add=TRUE)
+    plot.sphere(sim.sphereGLM(n=100)$Y, col="red", opacity=TRUE, main="This is the main title")
+    plot.sphere(sim.sphereGLM(n=100)$Y, col="blue", opacity=TRUE, add=TRUE)
     
     set.seed(1)
-    png.sphere(sim.sphereGLM(n=100, mu=c(1,0,0), s=10)$Y, opacity=T)
+    plot.sphere(sim.sphereGLM(n=100, mu=c(1,0,0), s=10)$Y, opacity=T)
     set.seed(1)
-    png.sphere(sim.sphereGLM(n=100, mu = c(0,1,0), s=10)$Y, col="blue", add=TRUE)
+    plot.sphere(sim.sphereGLM(n=100, mu = c(0,1,0), s=10)$Y, col="blue", add=TRUE)
   }
   
   if(FALSE){
@@ -367,7 +374,7 @@ png.sphere <- function(df, col="red", cex=0.01, opacity=TRUE, add=FALSE, main=NU
         spheres3d(0,0,0,lit=FALSE,color="white")
         spheres3d(0,0,0,radius=1.0,lit=FALSE,color="black",front="lines")
       } else {
-        png.sphere.grid(add=TRUE)
+        plot.sphere.grid(add=TRUE)
       }
       
       
@@ -395,7 +402,7 @@ png.sphere <- function(df, col="red", cex=0.01, opacity=TRUE, add=FALSE, main=NU
 
 
 
-#' @export png.coord2sph
+
 png.coord2sph <- function(x,y,z){
   R=1
   lat = asin(z / R)
@@ -407,7 +414,6 @@ png.coord2sph <- function(x,y,z){
 
 
 
-#' @export png.sph2coord
 png.sph2coord <- function (long, lat, radius = 1, deg = TRUE){
   # if(FALSE){
   #   x = R * cos(lat) * cos(long)

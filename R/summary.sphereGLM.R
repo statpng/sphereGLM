@@ -57,6 +57,8 @@ summary.sphereGLM <- function(fit, scale=FALSE, orthogonal=NULL){
        df=df,
        pvalue=pv.list)
   
+  
+  
 }
 
 

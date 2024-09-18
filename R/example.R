@@ -63,7 +63,7 @@ if(FALSE){
   # >> The fourth dimension has the smallest variation >> visualize the data without it.
   
   Ynew <- t( apply(Y[,1:3], 1, function(x) x/norm(x, "2")) )
-  png.sphere(Ynew)
+  plot.sphere(Ynew)
   
   
   fit1 <- sphereGLM(X=X, Y=Ynew, orthogonal=TRUE) # this takes about 5.5 seconds
