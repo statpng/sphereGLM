@@ -11,60 +11,6 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// bessel_i_approx
-double bessel_i_approx(double x, double nu);
-RcppExport SEXP _sphereGLM_bessel_i_approx(SEXP xSEXP, SEXP nuSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< double >::type x(xSEXP);
-    Rcpp::traits::input_parameter< double >::type nu(nuSEXP);
-    rcpp_result_gen = Rcpp::wrap(bessel_i_approx(x, nu));
-    return rcpp_result_gen;
-END_RCPP
-}
-// modified_bessel_i
-NumericVector modified_bessel_i(double nu, NumericVector x);
-RcppExport SEXP _sphereGLM_modified_bessel_i(SEXP nuSEXP, SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< double >::type nu(nuSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(modified_bessel_i(nu, x));
-    return rcpp_result_gen;
-END_RCPP
-}
-// rcpp_hello_world
-List rcpp_hello_world();
-RcppExport SEXP _sphereGLM_rcpp_hello_world() {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(rcpp_hello_world());
-    return rcpp_result_gen;
-END_RCPP
-}
-// sphereGLM_iteration
-List sphereGLM_iteration(arma::mat X, arma::mat Y, arma::mat Offset, arma::vec beta, arma::mat Xt, List Xt_list, double eps, int maxit, double lambda, bool orthogonal);
-RcppExport SEXP _sphereGLM_sphereGLM_iteration(SEXP XSEXP, SEXP YSEXP, SEXP OffsetSEXP, SEXP betaSEXP, SEXP XtSEXP, SEXP Xt_listSEXP, SEXP epsSEXP, SEXP maxitSEXP, SEXP lambdaSEXP, SEXP orthogonalSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::mat >::type X(XSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type Y(YSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type Offset(OffsetSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type beta(betaSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type Xt(XtSEXP);
-    Rcpp::traits::input_parameter< List >::type Xt_list(Xt_listSEXP);
-    Rcpp::traits::input_parameter< double >::type eps(epsSEXP);
-    Rcpp::traits::input_parameter< int >::type maxit(maxitSEXP);
-    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
-    Rcpp::traits::input_parameter< bool >::type orthogonal(orthogonalSEXP);
-    rcpp_result_gen = Rcpp::wrap(sphereGLM_iteration(X, Y, Offset, beta, Xt, Xt_list, eps, maxit, lambda, orthogonal));
-    return rcpp_result_gen;
-END_RCPP
-}
 // Cq_cpp
 double Cq_cpp(arma::vec theta, bool logarithm);
 RcppExport SEXP _sphereGLM_Cq_cpp(SEXP thetaSEXP, SEXP logarithmSEXP) {
@@ -172,12 +118,30 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// sphereGLM_iteration
+List sphereGLM_iteration(arma::mat X, arma::mat Y, arma::mat Offset, arma::vec beta, arma::mat Xt, List Xt_list, double eps, int maxit, double lambda, bool orthogonal, double gamma, Rcpp::Nullable<Rcpp::IntegerVector> zero_beta);
+RcppExport SEXP _sphereGLM_sphereGLM_iteration(SEXP XSEXP, SEXP YSEXP, SEXP OffsetSEXP, SEXP betaSEXP, SEXP XtSEXP, SEXP Xt_listSEXP, SEXP epsSEXP, SEXP maxitSEXP, SEXP lambdaSEXP, SEXP orthogonalSEXP, SEXP gammaSEXP, SEXP zero_betaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type X(XSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type Y(YSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type Offset(OffsetSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type beta(betaSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type Xt(XtSEXP);
+    Rcpp::traits::input_parameter< List >::type Xt_list(Xt_listSEXP);
+    Rcpp::traits::input_parameter< double >::type eps(epsSEXP);
+    Rcpp::traits::input_parameter< int >::type maxit(maxitSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
+    Rcpp::traits::input_parameter< bool >::type orthogonal(orthogonalSEXP);
+    Rcpp::traits::input_parameter< double >::type gamma(gammaSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::IntegerVector> >::type zero_beta(zero_betaSEXP);
+    rcpp_result_gen = Rcpp::wrap(sphereGLM_iteration(X, Y, Offset, beta, Xt, Xt_list, eps, maxit, lambda, orthogonal, gamma, zero_beta));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_sphereGLM_bessel_i_approx", (DL_FUNC) &_sphereGLM_bessel_i_approx, 2},
-    {"_sphereGLM_modified_bessel_i", (DL_FUNC) &_sphereGLM_modified_bessel_i, 2},
-    {"_sphereGLM_rcpp_hello_world", (DL_FUNC) &_sphereGLM_rcpp_hello_world, 0},
-    {"_sphereGLM_sphereGLM_iteration", (DL_FUNC) &_sphereGLM_sphereGLM_iteration, 10},
     {"_sphereGLM_Cq_cpp", (DL_FUNC) &_sphereGLM_Cq_cpp, 2},
     {"_sphereGLM_Bq_cpp", (DL_FUNC) &_sphereGLM_Bq_cpp, 1},
     {"_sphereGLM_Hq_cpp", (DL_FUNC) &_sphereGLM_Hq_cpp, 1},
@@ -187,6 +151,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_sphereGLM_diag_matrix", (DL_FUNC) &_sphereGLM_diag_matrix, 2},
     {"_sphereGLM_calculate_b1_vMF", (DL_FUNC) &_sphereGLM_calculate_b1_vMF, 4},
     {"_sphereGLM_calculate_b2_vMF", (DL_FUNC) &_sphereGLM_calculate_b2_vMF, 4},
+    {"_sphereGLM_sphereGLM_iteration", (DL_FUNC) &_sphereGLM_sphereGLM_iteration, 12},
     {NULL, NULL, 0}
 };
 

@@ -5,8 +5,38 @@
 #' @useDynLib sphereGLM
 #' 
 #' @export sphereGLM
-sphereGLM <- function(X, Y, MU=NULL, orthogonal=FALSE, standardize=TRUE, Offset=NULL, maxit=100, eps=1e-6, lambda=5e-4, use.nlm=FALSE){
+sphereGLM <- function(X, Y, MU=NULL, orthogonal=FALSE, penalty.factor=rep(0,ncol(X)), standardize=TRUE, Offset=NULL, maxit=100, eps=1e-4, lambda=1e-4, use.nlm=FALSE, gamma=9999){
   
+  if(FALSE){
+    MU=NULL; orthogonal=FALSE; standardize=TRUE; Offset=NULL; maxit=100; eps=1e-4; lambda=1e-4; use.nlm=FALSE; gamma=0
+    penalty.factor=rep(0,ncol(X))
+  }
+  
+  
+  
+  if(FALSE){
+    devtools::load_all()
+    
+    simdata <- sim.sphereGLM(n=100, p=2, q=3, mu=c(0,0,20), s=10, s0=0, type="vMF", seed.UDV=1, qr.U=FALSE, qr.V=FALSE)
+    
+    res <- microbenchmark::microbenchmark(
+      fit.nlm = with(simdata, sphereGLM.R(X=X, Y=Y, orthogonal=FALSE, lambda=1e-10, use.nlm = TRUE)),
+      fit.R = with(simdata, sphereGLM.R(X=X, Y=Y, orthogonal=FALSE, lambda=1e-10, use.nlm = FALSE)),
+      fit.nonortho = try(with(simdata, sphereGLM(X=X, Y=Y, orthogonal=FALSE, eps=1e-8))),
+      fit.ortho = with(simdata, sphereGLM(X=X, Y=Y, orthogonal=TRUE, eps=1e-8)),
+      times=10
+    )
+
+    res
+    
+    # Unit: milliseconds
+    # expr       min        lq      mean    median        uq       max neval
+    # fit.nlm 806.07033 811.06639 826.83488 815.26673 817.06096 940.69174    10
+    # fit.R 388.73970 400.26500 421.86182 412.03739 416.28784 541.79122    10
+    # fit.nonortho  29.77621  30.86558  33.97734  33.82582  37.11218  38.96271    10
+    # fit.ortho  21.77768  26.24324  27.73491  27.33673  29.47982  31.81202    10
+    # 
+  }
   
   
   if(FALSE){
@@ -93,16 +123,14 @@ sphereGLM <- function(X, Y, MU=NULL, orthogonal=FALSE, standardize=TRUE, Offset=
   p <- ncol(X)
   q <- ncol(Y)
   
+
+  if(is.null(Offset)){
+    Offset <- matrix(0,n,q)
+  }
+  
   
   
   {
-    
-    
-    
-    if(is.null(Offset)){
-      Offset <- matrix(0,n,q)
-    }
-    
     
     if(is.null(MU)){
       MU <- FrechetMean(Y)
@@ -142,9 +170,6 @@ sphereGLM <- function(X, Y, MU=NULL, orthogonal=FALSE, standardize=TRUE, Offset=
     }
     
     
-    
-    
-    
     X1 <- cbind(1, X)
     
     Xt.list <- apply(X1, 1, function(Xi) kronecker(Xi, diag(1,q)), simplify=FALSE) # [pq x q]
@@ -159,10 +184,12 @@ sphereGLM <- function(X, Y, MU=NULL, orthogonal=FALSE, standardize=TRUE, Offset=
     crit <- 1
     
     
-    fit0 <- sphereGLM_iteration(X=X, Y=Y, Offset=Offset, beta=beta, Xt=Xt, Xt_list=Xt.list, eps=eps, maxit=maxit, lambda=lambda, orthogonal=orthogonal)
+    fit0 <- sphereGLM_iteration(X=X, Y=Y, Offset=Offset, beta=beta, Xt=Xt, Xt_list=Xt.list, eps=eps, maxit=maxit, lambda=lambda, orthogonal=orthogonal, gamma=gamma, zero_beta = which(penalty.factor==1))
     
-    beta.list <- fit0$beta_list
-    beta_new <- fit0$beta
+    
+    
+    beta.list <- lapply( fit0$beta_list, function(b) ifelse(abs(b) < 1e-10, 0, b) )
+    beta_new <- ifelse(abs(fit0$beta) < 1e-10, 0, fit0$beta)
     
     
     loglik.list <- fit0$loglik_list
@@ -194,7 +221,7 @@ sphereGLM <- function(X, Y, MU=NULL, orthogonal=FALSE, standardize=TRUE, Offset=
   
   
   
-  params <- list( MU=MU, Offset=Offset, maxit=maxit, eps=eps, standardize=standardize, orthogonal=orthogonal, use.nlm=use.nlm )
+  params <- list( MU=MU, Offset=Offset, maxit=maxit, eps=eps, standardize=standardize, orthogonal=orthogonal, lambda=lambda, gamma=gamma, use.nlm=use.nlm )
   
   
   result$beta2[-1,] <- t( apply(result$beta2[-1,,drop=F], 1, function(x) x/norm(result$beta2[1,], "2")) )
@@ -221,7 +248,7 @@ sphereGLM <- function(X, Y, MU=NULL, orthogonal=FALSE, standardize=TRUE, Offset=
 
 
 #' @export sphereGLM.R
-sphereGLM.R <- function(X, Y, MU=NULL, orthogonal=FALSE, standardize=TRUE, Offset=NULL, maxit=100, eps=1e-6, lambda=5e-4, use.nlm=FALSE){
+sphereGLM.R <- function(X, Y, MU=NULL, orthogonal=FALSE, standardize=TRUE, Offset=NULL, maxit=100, eps=1e-6, lambda=5e-4, use.nlm=FALSE, gamma=9999){
   
   # Figure: How good is the initial value?
   if(FALSE){
@@ -421,10 +448,13 @@ sphereGLM.R <- function(X, Y, MU=NULL, orthogonal=FALSE, standardize=TRUE, Offse
       XWX <- Xt %*% W %*% t(Xt)
       
       if(orthogonal){
-        gamma <- 9999
+        
         beta <- solve( XWX +  gamma * Matrix::bdiag(append(list(matrix(0,q,q)), replicate(p, tcrossprod(mu), simplify=FALSE))) ) %*% Xt %*% W %*% Z
+        
       } else {
+        
         beta <- solve(XWX + Matrix::bdiag( 0, diag.matrix(XWX[-1,-1], lambda) ) ) %*% Xt %*% W %*% Z
+        
       }
       
       beta_new <- beta
@@ -574,14 +604,14 @@ subgrad <- function(theta){
 
 
 
-
+#' @export b1.vMF
 b1.vMF <- function(theta){
   Bq(theta) * subgrad(theta)
 }
 
 
 
-
+#' @export b2.vMF
 b2.vMF <- function(theta){
   q <- length(theta)
   NORM <- norm(theta, "2")
@@ -590,7 +620,7 @@ b2.vMF <- function(theta){
   # if( NORM < 1e-10 ){
   #   tcrossprod(s) * Hq(theta) + Bq(theta)
   # } else {
-  tcrossprod(s) * Hq(theta) + Bq(theta) / NORM * (diag(1,q) - tcrossprod(theta/NORM) )
+  tcrossprod( theta/NORM ) * Hq(theta) + Bq(theta) / NORM * (diag(1,q) - tcrossprod(theta/NORM) )
   # }
   
 }

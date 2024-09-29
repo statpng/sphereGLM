@@ -1,6 +1,6 @@
 #' @importFrom Directional rvmf
 #' @export sim.sphereGLM
-sim.sphereGLM <- function(n=50, p=1, q=3, mu=c(0,0,1), snr=NULL, s=2, s0=0, type=c("vMF", "Proj", "ExpMap"), seed.UDV=1, seed.E=NULL, qr.U=FALSE, qr.V=FALSE){
+sim.sphereGLM <- function(n=50, p=1, q=3, mu=c(0,0,10), snr=NULL, s=1, s0=0, type=c("vMF", "Proj", "ExpMap"), seed.UDV=1, seed.E=NULL, qr.U=FALSE, qr.V=FALSE){
   # typeA = "sparse", typeB = "all", n = 50, p = 10, q = 10, 
   #  d = 3, rvec = NULL, nuA = 0.2, nuB = 0.5, d0 = 3, es = "1", 
   #  es.B = 1, snr = 1, simplify = TRUE, sigma = NULL, rho_X = 0.5, 
@@ -21,14 +21,17 @@ sim.sphereGLM <- function(n=50, p=1, q=3, mu=c(0,0,1), snr=NULL, s=2, s0=0, type
     seed.E <- sample( setdiff(1:1000, seed.UDV), 1 )
   }
   
-  
-  
   if(length(type)>1){
-    type <- "Proj"
+    type <- "vMF"
   }
   
+  if(length(s)==1){
+    s <- rep(s, p)
+  }
+  
+  
   set.seed(seed.UDV)
-  D <- sapply(1:p, function(k) (s/k^2 + s0))
+  D <- sapply(1:p, function(k) s[k] + s0)
   
   V <- do.call("cbind", lapply(1:p, function(x) rnorm(q)))
   if(qr.V){
@@ -103,8 +106,8 @@ sim.sphereGLM <- function(n=50, p=1, q=3, mu=c(0,0,1), snr=NULL, s=2, s0=0, type
   }
   
   
-  params <- c(n=n, q=q, p=p, mu=mu, snr=snr, s=s, s0=s0, type=type)
-  result <- list(mu=mu, X=U, B=V, Y=Y, Theta=Theta, E=E, params=params)
+  params <- list(n=n, q=q, p=p, mu=mu, snr=snr, s=s, s0=s0, type=type, qr.U=qr.U, qr.V=qr.V)
+  result <- list(mu=mu, X=U, B=t(V), Y=Y, Theta=Theta, E=E, params=params)
   
   result
 }

@@ -18,7 +18,8 @@ arma::mat calculate_b2_vMF(const arma::mat& Offset, const Rcpp::List& Xt_list, c
 // [[Rcpp::export]]
 List sphereGLM_iteration(arma::mat X, arma::mat Y, arma::mat Offset, arma::vec beta, 
                          arma::mat Xt, List Xt_list, double eps, int maxit, 
-                         double lambda, bool orthogonal) {
+                         double lambda, bool orthogonal, double gamma,
+                         Rcpp::Nullable<Rcpp::IntegerVector> zero_beta = R_NilValue) {
   int n = X.n_rows;
   int p = X.n_cols;
   int q = Y.n_cols;
@@ -62,17 +63,24 @@ List sphereGLM_iteration(arma::mat X, arma::mat Y, arma::mat Offset, arma::vec b
     arma::vec mu = beta.subvec(0, q-1);
     arma::mat XWX = Xt * W * Xt.t();
     
+    arma::mat penalty = arma::zeros(XWX.n_rows, XWX.n_cols);
     if (orthogonal) {
-      double gamma = 9999;
-      arma::mat penalty = arma::zeros(XWX.n_rows, XWX.n_cols);
       for (int i = 1; i <= p; ++i) {
         penalty.submat(i*q, i*q, (i+1)*q-1, (i+1)*q-1) = gamma * mu * mu.t();
       }
-      beta = solve(XWX + penalty, Xt * W * Z);
-    } else {
-      arma::mat penalty = arma::zeros(XWX.n_rows, XWX.n_cols);
-      beta = solve(XWX + penalty, Xt * W * Z);
     }
+      
+    if (zero_beta.isNotNull()) {
+      Rcpp::IntegerVector zero_indices = Rcpp::as<Rcpp::IntegerVector>(zero_beta);
+      for (int idx : zero_indices) {
+        if (idx > 0 && idx <= p) {  // 유효한 인덱스인지 확인
+          penalty.submat(idx*q, idx*q, (idx+1)*q-1, (idx+1)*q-1) += 1e+12 * arma::eye(q, q);
+        }
+      }
+    }
+    
+    beta = solve(XWX + penalty, Xt * W * Z);
+  
     
     beta_new = beta;
     
