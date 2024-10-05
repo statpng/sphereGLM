@@ -5,7 +5,7 @@
 #' @useDynLib sphereGLM
 #' 
 #' @export sphereGLM
-sphereGLM <- function(X, Y, MU=NULL, orthogonal=FALSE, penalty.factor=rep(0,ncol(X)), standardize=TRUE, Offset=NULL, maxit=100, eps=1e-4, lambda=1e-4, use.nlm=FALSE, gamma=9999){
+sphereGLM <- function(X, Y, MU=NULL, orthogonal=FALSE, penalty.factor=rep(0,ncol(X)), standardize=TRUE, Offset=NULL, maxit=100, eps=1e-4, lambda=1e-4, use.nlm=FALSE, gamma=9){
   
   if(FALSE){
     MU=NULL; orthogonal=FALSE; standardize=TRUE; Offset=NULL; maxit=100; eps=1e-4; lambda=1e-4; use.nlm=FALSE; gamma=0

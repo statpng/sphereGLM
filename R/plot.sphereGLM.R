@@ -1,7 +1,7 @@
 #' @import rgl
 #' @method plot sphereGLM
 #' @export
-plot.sphereGLM <- function(fit, plot.mu=TRUE, plot.conf=TRUE, plot.tangent=TRUE, use.PNS=FALSE, conf.level=0.95, scale=TRUE, cex=0.01, opacity=FALSE, col=NULL, add=FALSE, main=NULL, arrow.type="rotation", ...){
+plot.sphereGLM <- function(fit, plot.mu=TRUE, plot.conf=TRUE, plot.tangent=TRUE, use.PNS=FALSE, conf.level=0.95, scale=TRUE, cex=0.01, opacity=FALSE, col=NULL, add=FALSE, main=NULL, arrow.type="rotation", alpha=1.0, scale.factor=0.8, barblen=0.01, lwd=0.3, cex.tangent=1.5, lit=TRUE, n.mesh=100, plane.type="plane", ...){
   
   # if( !arrow.type %in% c("lines", "rotation") ) stop( 'arrow.type %in% c("lines", "rotation")' )
   
@@ -11,6 +11,72 @@ plot.sphereGLM <- function(fit, plot.mu=TRUE, plot.conf=TRUE, plot.tangent=TRUE,
     plot.mu=TRUE; cex=0.01; opacity=FALSE; col=NULL; add=FALSE; main=NULL; ...=NULL
     plot.conf=TRUE
     scale=TRUE
+    
+    
+    plot.tangent=TRUE
+    use.PNS=FALSE
+    conf.level=0.95
+    main=NULL
+    arrow.type="rotation"
+    alpha=0.5
+    scale.factor=0.8
+    barblen=0.01
+    lwd=0.3
+    cex.tangent=1.5
+    lit=TRUE
+    
+  }
+  
+  
+  # Toy Example Figure
+  if(FALSE){
+    devtools::load_all()
+    
+    
+    set.seed(1)
+    simdata <- sim.sphereGLM(n=200, p=2, q=3, mu=c(0,0,200), s=c(60,20), seed.UDV=5, seed.E=1, qr.V=TRUE, qr.U=FALSE)
+    
+    fit <- sphereGLM(simdata$X, simdata$Y, orthogonal=TRUE)
+    
+    plot(fit, opacity=F, alpha=1, plot.conf=TRUE, plot.tangent = T, cex=0.015, scale=TRUE)
+    
+    
+    
+    set.seed(1)
+    simdata <- sim.sphereGLM(n=200, p=2, q=3, mu=c(50,50,100), s=c(60,20), seed.UDV=5, seed.E=1, qr.V=TRUE, qr.U=FALSE)
+    
+    fit <- sphereGLM(simdata$X, simdata$Y, orthogonal=TRUE)
+    
+    plot(fit, opacity=F, alpha=1, plot.conf=TRUE, plot.tangent = T, cex=0.015, scale=TRUE)
+    
+  }
+  
+  
+  
+  # save figure ----
+  if(FALSE){
+    
+    set.seed(1)
+    simdata <- sim.sphereGLM(n=200, p=2, q=3, mu=c(50,50,100), s=c(60,20), seed.UDV=5, seed.E=1, qr.V=TRUE, qr.U=FALSE)
+    
+    # spheres3d(simdata$Y[,1],simdata$Y[,2],simdata$Y[,3],
+    #           alpha=0.5, radius=0.01)
+    
+    fit <- sphereGLM(simdata$X, simdata$Y, orthogonal=TRUE)
+    
+    plot(fit, alpha=0.5)
+    
+    calculate_view_angles(simdata$Y) %>% {
+      view3d(theta = .['theta']*0.8, phi = .['phi']*0.8, zoom = 0.7)
+    }
+    
+    # rgl.snapshot(paste0("./figures/plot-sphereGLM-ortho-spoke=", k, "__22.png"), width=1600, height=1600)
+    # rgl.postscript(paste0("./figures/plot-sphereGLM-ortho-spoke=", k, "__22.eps"), fmt = "eps")
+    rgl.postscript(paste0("./test.pdf"), fmt = "pdf")
+    # render_snapshot("test", width = 3840, height = 2160, clear=TRUE)
+    
+    close3d()
+    
   }
   
   
@@ -174,7 +240,7 @@ plot.sphereGLM <- function(fit, plot.mu=TRUE, plot.conf=TRUE, plot.tangent=TRUE,
     
     n <- nrow(Y)
     
-    norm.mu <- ifelse( abs(norm(mu, "2")-1) < 0.1, norm(mu, "2"), norm(mu, "2") * 0.8 )
+    norm.mu <- ifelse( abs(norm(mu, "2")-1) < 0.1, norm(mu, "2"), norm(mu, "2") * scale.factor )
     
   }
   
@@ -231,26 +297,39 @@ plot.sphereGLM <- function(fit, plot.mu=TRUE, plot.conf=TRUE, plot.tangent=TRUE,
   
   
   
-  plot.sphere(Y, col=col1, opacity=opacity, add=add, cex=cex, main=main, ...)
+  
+  plot.sphere(Y, col=col1, opacity=opacity, add=add, cex=cex, main=main, alpha=alpha, lit=lit, ...)
   
   
-  rgl::spheres3d(expand.grid(replicate(3, c(-1.5,1.5), simplify=F)), alpha=0.01, col="white", radius=0.001, lit=FALSE)
   
   
-  if(nrow(beta)>1){
-    normal_vector <- project_to_plane(c(0,0,0), cross_product(beta[1,], beta[2,]), mu)
-    rgl::planes3d(a=normal_vector, d=-sum(normal_vector * mu), alpha=0.1, add=TRUE)
-    # rgl::abclines3d(mu[1],mu[2],mu[3], beta, alpha=0.5, col="blue", lwd=2)
-  } else {
+  
+  
+  if( plot.tangent ){
     
-    if( fit$params$orthogonal & plot.tangent ){
-      rgl::planes3d(a=mu, d=-sum(mu * mu), alpha=0.1, add=TRUE)
-      
-      # rgl::abclines3d(mu[1],mu[2],mu[3], beta, alpha=0.5, col="blue", lwd=2)
+    if( nrow(beta) == 1 ){
+      normal_vector <- mu
+    } else {
+      normal_vector <- project_to_plane(c(0,0,0), cross_product(beta[1,], beta[2,]), mu)
     }
     
-  }
-  
+    
+    
+    if( plane.type == "plane" ){
+      
+      rgl::planes3d(a=normal_vector, d=-sum(normal_vector * mu), alpha=0.1, depth_mask = FALSE)
+      
+    } else if ( plane.type == "mesh" ){
+      
+      create_plane_mesh(a=normal_vector, d=-sum(normal_vector * mu), alpha = 0.1, depth_mask = TRUE, front = "lines", back = "lines", n = n.mesh, col = "blue")
+      
+    }
+    
+    # rgl.postscript(paste0("./test.pdf"), fmt = "pdf")
+    # rgl.snapshot(paste0("./test.png"))
+    
+    
+  } 
   
   
   
@@ -258,7 +337,17 @@ plot.sphereGLM <- function(fit, plot.mu=TRUE, plot.conf=TRUE, plot.tangent=TRUE,
   
   for( k in 1:nrow(MU) ){
     # rgl::arrow3d(MU[k,]-beta[k,], MU[k,]+beta[k,], type=c("lines", "rotation")[1], col=col2, s=0.05, barblen=0.03, width=0.5, add=TRUE, n=100)
-    rgl::arrow3d(MU[k,]-beta[k,], MU[k,]+beta[k,], type=arrow.type, col=col2, s=0.05, barblen=0.04*sqrt(norm(beta[k,], "2")), width=0.1, add=TRUE, n=arrow.num)
+    
+    rgl::arrow3d(MU[k,], MU[k,]+beta[k,], type=arrow.type, col=col2, s=0.05, 
+                 # barblen=0.04*sqrt(norm(beta[k,], "2")),
+                 barblen=barblen,
+                 width=lwd, add=TRUE, n=arrow.num)
+    
+    # rgl::arrow3d(MU[k,]-beta[k,], MU[k,]+beta[k,], type=arrow.type, col=col2, s=0.05, 
+    #              # barblen=0.04*sqrt(norm(beta[k,], "2")),
+    #              barblen=barblen,
+    #              width=lwd, add=TRUE, n=arrow.num)
+    
   }
   
   
@@ -267,9 +356,9 @@ plot.sphereGLM <- function(fit, plot.mu=TRUE, plot.conf=TRUE, plot.tangent=TRUE,
   if(plot.mu){
     
     switch(3,
-           `1`=rgl::arrow3d(c(0,0,0), mu, type=c("lines", "rotation")[1], col=col3, s=0.1, barblen=0.02, width=0.5, add=TRUE),
-           `2`=rgl::arrow3d(c(0,0,0), mu, type=c("lines", "rotation")[2], col=col3, s=0.1, barblen=0.02, width=0.1, add=TRUE),
-           `3`=rgl::arrow3d(c(0,0,0), mu, type=arrow.type, col=col3, s=0.02, barblen=0.02, width=0.1, add=TRUE, n=arrow.num)
+           `1`=rgl::arrow3d(c(0,0,0), mu, type=c("lines", "rotation")[1], col=col3, s=0.1, barblen=0.02, width=lwd, add=TRUE),
+           `2`=rgl::arrow3d(c(0,0,0), mu, type=c("lines", "rotation")[2], col=col3, s=0.1, barblen=0.02, width=lwd, add=TRUE),
+           `3`=rgl::arrow3d(c(0,0,0), mu, type=arrow.type, col=col3, s=0.02, barblen=barblen, width=lwd, add=TRUE, n=arrow.num)
     )
     
   }
@@ -313,7 +402,7 @@ plot.sphereGLM <- function(fit, plot.mu=TRUE, plot.conf=TRUE, plot.tangent=TRUE,
         rotated_data2 <- tcrossprod(rep(1,100), MU[j,]+beta[j,]) + rotated_data
         
         lines3d(rotated_data2[,1], rotated_data2[,2], rotated_data2[,3], lwd=2, 
-                col=col2, barblen=0.03, width=0.5, add=TRUE, n=200)
+                col=col2, barblen=barblen, width=lwd, add=TRUE, n=200, alpha=0.5)
       }
       
       
@@ -332,6 +421,7 @@ plot.sphereGLM <- function(fit, plot.mu=TRUE, plot.conf=TRUE, plot.tangent=TRUE,
 
 
 # Function to project a point onto a plane
+#' @export project_to_plane
 project_to_plane <- function(point, plane_normal, plane_point) {
   # Extract the components of the point
   x <- point[1]
@@ -361,7 +451,7 @@ project_to_plane <- function(point, plane_normal, plane_point) {
 
 
 
-# 외적을 계산하는 함수 정의
+#' @export cross_product
 cross_product <- function(a, b) {
   c(
     a[2] * b[3] - a[3] * b[2],
@@ -378,7 +468,7 @@ cross_product <- function(a, b) {
 
 
 #' @export plot.sphere
-plot.sphere <- function(df, X=NULL, col="red", cex=0.01, opacity=FALSE, add=FALSE, main=NULL, main.cex=2, main.position="topleft"){
+plot.sphere <- function(df, X=NULL, col="red", cex=0.01, opacity=FALSE, add=FALSE, main=NULL, main.cex=2, main.position="topleft", alpha=0.5, lit=TRUE){
   
   library(rgl)
   
@@ -540,16 +630,15 @@ plot.sphere <- function(df, X=NULL, col="red", cex=0.01, opacity=FALSE, add=FALS
   # legend3d("topright", legend = paste('Type', c('A', 'B', 'C')), pch = 16, col = rainbow(3), cex=1, inset=c(0.02))
   
   
-  spheres3d(x,y,z,col=col,radius=cex)
+  spheres3d(x,y,z,col=col,radius=cex,alpha=alpha, lit=lit, fastTransparency = TRUE)
   
-  rgl::text3d(1.1,0,0, texts="(1,0,0)")
-  rgl::text3d(0,1.1,0, texts="(0,1,0)")
-  rgl::text3d(0,0,1.1, texts="(0,0,1)")
-  
-  rgl::text3d(-1.1,0,0, texts="(-1,0,0)")
-  rgl::text3d(0,-1.1,0, texts="(0,-1,0)")
-  rgl::text3d(0,0,-1.1, texts="(0,0,-1)")
-  
+  # rgl::text3d(1.1,0,0, texts="(1,0,0)")
+  # rgl::text3d(0,1.1,0, texts="(0,1,0)")
+  # rgl::text3d(0,0,1.1, texts="(0,0,1)")
+  # 
+  # rgl::text3d(-1.1,0,0, texts="(-1,0,0)")
+  # rgl::text3d(0,-1.1,0, texts="(0,-1,0)")
+  # rgl::text3d(0,0,-1.1, texts="(0,0,-1)")
   
   
   
@@ -559,78 +648,6 @@ plot.sphere <- function(df, X=NULL, col="red", cex=0.01, opacity=FALSE, add=FALS
     angles <- calculate_view_angles(df)
     view3d(theta = angles['theta'], phi = angles['phi'], zoom = 0.75)
   }
-  # {
-  #   xbar <- colMeans(df) %>% {./norm(.,"2")}
-  # 
-  #   theta1 <- acos( (c(xbar[1],0,xbar[3]) %>% {./norm(.,"2")}) %*% c(0,0,1) ) * 180 / pi
-  #   theta2 <- acos( -(c(xbar[1],0,xbar[3]) %>% {./norm(.,"2")}) %*% c(0,0,1) ) * 180 / pi - 180
-  # 
-  #   v1 <- (theta1 *pi/180) %>% {
-  #     matrix(
-  #     c(cos(.), 0, sin(.),
-  #       0, 1, 0,
-  #       -sin(.), 0, cos(.)),
-  #     nrow = 3, byrow = TRUE
-  #     )
-  #   } %>% { . %*% c(0,0,1) }
-  #   
-  #   v2 <- (theta2 *pi/180) %>% {
-  #     matrix(
-  #       c(cos(.), 0, sin(.),
-  #         0, 1, 0,
-  #         -sin(.), 0, cos(.)),
-  #       nrow = 3, byrow = TRUE
-  #     )
-  #   } %>% { . %*% c(0,0,1) }
-  #   
-  #   theta <- ifelse( sum(xbar*v1) > sum(xbar*v2), theta1, theta2 )
-  #   
-  # 
-  #   rotation_matrix <- (theta *pi/180) %>% {
-  #     matrix(
-  #       c(cos(.), 0, sin(.),
-  #         0, 1, 0,
-  #         -sin(.), 0, cos(.)),
-  #       nrow = 3, byrow = TRUE
-  #     )
-  #   }
-  #   
-  #   tmp <- rotation_matrix %*% cbind(c(0,0,1), c(0,0.1,-1) %>% {./norm(.,"2")})
-  #   xbar2 <- tmp %*% solve(crossprod(tmp)) %*% t(tmp) %*% xbar
-  # 
-  #   phi1 <- acos( t(xbar) %*% (rotation_matrix %*% c(0,0,1)) ) * 180 / pi
-  #   phi2 <- acos( -t(xbar) %*% (rotation_matrix %*% c(0,0,1)) ) * 180 / pi - 180
-  #   
-  #   
-  #   v1 <- (phi1 *pi/180) %>% {
-  #     matrix(
-  #       c(1, 0, 0,
-  #         0, cos(.), sin(.),
-  #         0, -sin(.), cos(.)),
-  #       nrow = 3, byrow = TRUE
-  #     )
-  #   } %>% { . %*% tmp[,1] }
-  #   
-  #   v2 <- (phi2 *pi/180) %>% {
-  #     matrix(
-  #       c(1, 0, 0,
-  #         0, cos(.), sin(.),
-  #         0, -sin(.), cos(.)),
-  #       nrow = 3, byrow = TRUE
-  #     )
-  #   } %>% { . %*% tmp[,1] }
-  #   
-  #   phi <- ifelse( sum(xbar*v1) > sum(xbar*v2), phi1, phi2 )
-  #   
-  #   # phi <- atan( t(xbar) %*% (rotation_matrix %*% c(0,0,1)) ) * 180 / pi
-  #   
-  #   view3d(theta = 0, phi = 0, zoom = 0.75)
-  #   view3d(theta = theta, phi = 0, zoom = 0.75)
-  #   view3d(theta = theta, phi = phi, zoom = 0.75)
-  # 
-  # }
-  # 
-  
   
 }
 
@@ -691,6 +708,9 @@ calculate_view_angles <- function(df) {
   }
   
   return(c(theta = theta, phi = phi))
+  
+  # angles <- calculate_view_angles(df)
+  # view3d(theta = angles['theta'], phi = angles['phi'], zoom = 0.75)
 }
 
 
@@ -833,4 +853,80 @@ png.sph2coord <- function (long, lat, radius = 1, deg = TRUE){
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+create_plane_mesh <- function(a, d, alpha = 0.05, depth_mask = FALSE, front = "lines", back = "lines", n = 20, col = "blue") {
+  # a는 normal vector (길이 3의 벡터)
+  # d는 평면의 방정식 ax + by + cz + d = 0에서의 d 값
+  
+  # 평면 위의 점 생성 함수
+  generate_plane_points <- function(a, d, range = c(-1, 1), n = 20) {
+    max_idx <- which.max(abs(a))
+    vars <- setdiff(1:3, max_idx)
+    
+    grid <- expand.grid(
+      seq(range[1], range[2], length.out = n),
+      seq(range[1], range[2], length.out = n)
+    )
+    names(grid) <- c("v1", "v2")
+    
+    grid$v3 <- (-d - a[vars[1]] * grid$v1 - a[vars[2]] * grid$v2) / a[max_idx]
+    
+    result <- matrix(0, nrow = n^2, ncol = 3)
+    result[, vars] <- as.matrix(grid[, c("v1", "v2")])
+    result[, max_idx] <- grid$v3
+    
+    return(result)
+  }
+  
+  # 점 생성
+  points <- generate_plane_points(a, d, n = n)
+  
+  # 선분 생성 함수
+  create_lines <- function(points, n) {
+    lines <- matrix(NA, nrow = n * (n-1) * 4, ncol = 3)
+    idx <- 1
+    
+    # 수평 선분
+    for (i in 1:n) {
+      for (j in 1:(n-1)) {
+        lines[idx,] <- points[(i-1)*n + j,]
+        lines[idx+1,] <- points[(i-1)*n + j+1,]
+        idx <- idx + 2
+      }
+    }
+    
+    # 수직 선분
+    for (i in 1:n) {
+      for (j in 1:(n-1)) {
+        lines[idx,] <- points[(j-1)*n + i,]
+        lines[idx+1,] <- points[j*n + i,]
+        idx <- idx + 2
+      }
+    }
+    
+    return(lines)
+  }
+  
+  # 선분 생성 및 그리기
+  lines <- create_lines(points, n)
+  segments3d(x = lines[,1], y = lines[,2], z = lines[,3], 
+             col = col, alpha = alpha, depth_mask = depth_mask)
+}
 

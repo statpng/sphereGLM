@@ -5,17 +5,21 @@ summary.sphereGLM <- function(fit, scale=FALSE, orthogonal=NULL, type="all"){
   if(FALSE){
     devtools::load_all()
     
-    simdata.list <- lapply(c(100, 500, 1000, 2000, 5000, 10000), function(n){
-      simdata <- sim.sphereGLM(n=n, p=1, q=3, mu=c(0,0,10), s=0, s0=0, type="vMF", seed.UDV=1, seed.E=2, qr.U=FALSE, qr.V=FALSE)
+    simdata.list <- lapply(c(50, 100, 200, 500, 1000), function(n){
+      simdata <- sim.sphereGLM(n=n, p=2, q=3, mu=c(0,0,10), s=0, s0=0, type="vMF", seed.UDV=1, seed.E=2, qr.U=FALSE, qr.V=TRUE)
     })
     
     fit.list <- lapply(1:length(simdata.list), function(i){
       simdata <- simdata.list[[i]]
-      fit <- sphereGLM(X=simdata$X, Y=simdata$Y, orthogonal=simdata$params$qr.V)
+      fit <- sphereGLM(X=simdata$X, Y=simdata$Y, orthogonal=simdata$params$qr.V, gamma=100)
       fit
     })
     
     summary.list <- fit.list %>% lapply(function(x) summary(x))
+    
+    lapply(summary.list, function(x) do.call("rbind", x$statistic))
+    
+    
     cov1.list <- summary.list %>% lapply(function(x) x$cov[[1]] %>% {eigen(.)$values[1]})
     cov2.list <- summary.list %>% lapply(function(x) x$cov[[2]] %>% {eigen(.)$values[1]})
     stat.list <- summary.list %>% lapply(function(x) x$stat)
@@ -113,20 +117,20 @@ summary.sphereGLM <- function(fit, scale=FALSE, orthogonal=NULL, type="all"){
   }
   
   if( class(fit) == "try-error" ){
-
+    
     return( list(beta=NA,
-         norm=NA, 
-         Fisher=NA,
-         orthogonal=NA,
-         wald=NA,
-         df=NA,
-         statistic=list(wald=NA,
-                        LRT=NA,
-                        score=NA),
-         pvalue=list(wald=NA,
-                     LRT=NA,
-                     score=NA
-         )) )
+                 norm=NA, 
+                 Fisher=NA,
+                 orthogonal=NA,
+                 wald=NA,
+                 df=NA,
+                 statistic=list(wald=NA,
+                                LRT=NA,
+                                score=NA),
+                 pvalue=list(wald=NA,
+                             LRT=NA,
+                             score=NA
+                 )) )
     
     
   }
@@ -162,6 +166,28 @@ summary.sphereGLM <- function(fit, scale=FALSE, orthogonal=NULL, type="all"){
   
   
   
+  
+  # gamma
+  if(orthogonal){
+    bbeta <- as.vector(t(beta_new[-1,]))
+    bmu <- beta_new[1,]
+    ScoreVector <- score2(X, Y, beta_new, gamma=0, Offset=Offset)
+    # ==
+    # Xt.list <- apply(cbind(1,X), 1, function(Xi) kronecker(Xi, diag(1,q)), simplify=FALSE)
+    # b1.list <- lapply(1:n, function(i) b1.vMF( Offset[i,] + t(Xt.list[[i]]) %*% as.vector(t(beta_new)) ))
+    # t(Xt) %*% (as.vector(t(Y)) - do.call("rbind", b1.list))
+    
+    gamma <- (kronecker(diag(p), tcrossprod(bmu)) %*% bbeta) %>% {
+      solve(t(.) %*% (.) + diag(1e-16, ncol(.), ncol(.)) ) %*% t(.)
+    } %*% ScoreVector %>% {c(./2)}
+    
+    # gamma <- 0
+    #
+    
+  }
+  
+  
+  
   betahat0 <- lapply(1:p, function(j){
     # fit0 <- vmf.reg(y=Y, x=X[,j], tol=1e-4, orthogonal=orthogonal, gamma=gamma)
     
@@ -181,6 +207,7 @@ summary.sphereGLM <- function(fit, scale=FALSE, orthogonal=NULL, type="all"){
   
   
   # Wald test ----
+  
   fit.Fisher <- FisherMatrix(X=X, beta_new=beta_new, orthogonal=orthogonal, gamma=gamma)
   
   cov <- lapply(1:p, function(j) solve(fit.Fisher$Fnj[[j]]))
@@ -211,7 +238,7 @@ summary.sphereGLM <- function(fit, scale=FALSE, orthogonal=NULL, type="all"){
     stat.wald <- c( global=Wald.global, ind=Wald.j.list )
   }
   
-    
+  
   
   
   
@@ -250,7 +277,7 @@ summary.sphereGLM <- function(fit, scale=FALSE, orthogonal=NULL, type="all"){
     
     beta0 <- rbind(fit$mu, matrix(1e-12, p, q))
     fit.Fisher <- FisherMatrix(X=X, beta_new=beta0, orthogonal=orthogonal, gamma=gamma)
-    ScoreVector <- score(X, Y, beta0, gamma=0, Offset=Offset)
+    ScoreVector <- score(X, Y, beta0, gamma=gamma, Offset=Offset)
     
     TestStat.Score.global <- c( t(ScoreVector) %*% solve(fit.Fisher$Fn) %*% ScoreVector )
     TestStat.Score.global <- c( t(ScoreVector[-(1:q)]) %*% solve( fit.Fisher$Fn[-(1:q),-(1:q)]) %*% ScoreVector[-(1:q)] )
@@ -266,9 +293,12 @@ summary.sphereGLM <- function(fit, scale=FALSE, orthogonal=NULL, type="all"){
       TestStat.Score.ind <- sapply(1:p, function(j){
         beta0 <- betahat0[[j]]
         fit.Fisher <- FisherMatrix(X=X, beta_new=beta0, orthogonal=orthogonal, gamma=gamma)
-        ScoreVector <- score(X, Y, beta0, gamma=0, Offset=Offset)
+        ScoreVector <- score(X, Y, beta0, gamma=gamma, Offset=Offset)
         
-        ScoreStat.ind <- c( t(ScoreVector) %*% solve( fit.Fisher$Fn) %*% ScoreVector )
+        # ScoreStat.ind <- c( t(ScoreVector) %*% solve(fit.Fisher$Fn) %*% ScoreVector )
+        
+        ScoreStat.ind <- c( t(ScoreVector[1:q+q*j]) %*% solve( fit.Fisher$Fnj[[j+1]]) %*% ScoreVector[1:q+q*j] )
+        
         ScoreStat.ind
         
       })
@@ -277,7 +307,11 @@ summary.sphereGLM <- function(fit, scale=FALSE, orthogonal=NULL, type="all"){
     }
     
     stat.score <- c( global=TestStat.Score.global, ind=TestStat.Score.ind )
-    pv.score <- sapply(1:(p+1), function(j) 1 - pchisq(stat.score[j], p*df) )
+    
+    pv.score.global <- 1 - pchisq(TestStat.Score.global, p*df)
+    pv.score.ind <- sapply(1:p, function(j) 1 - pchisq(TestStat.Score.ind[j], df) )
+    
+    pv.score <- c( global=pv.score.global, ind=pv.score.ind )
     
   }
   
@@ -444,9 +478,9 @@ score <- function(X, Y, beta_new, gamma, Offset){
   
   ScoreVector <- matsum(1:n, function(i){
     # \partial\bmu
-    s1 <- 2 * gamma * matsum(1:p, function(j) tcrossprod(bB[j,])) %*% bmu
+    s1 <- -2*gamma * matsum(1:p, function(j) tcrossprod(bB[j,])) %*% bmu
     # \partial\bbeta^*
-    s2 <- 2 * gamma * kronecker(diag(p), tcrossprod(bmu)) %*% bbeta
+    s2 <- -2*gamma * kronecker(diag(p), tcrossprod(bmu)) %*% bbeta
     
     kronecker(c(1,X[i,]), diag(1,q,q)) %*% ( Y[i,] - b1.list[[i]] ) + c(s1, s2)
     
@@ -454,6 +488,36 @@ score <- function(X, Y, beta_new, gamma, Offset){
   
   ScoreVector
 }
+
+
+
+#' @export score2
+score2 <- function(X, Y, beta_new, gamma, Offset){
+  n=nrow(X); p=ncol(X); q=ncol(Y)
+  bmu=beta_new[1,]
+  bB=beta_new[-1,,drop=F]
+  bbeta=as.vector(t(beta_new[-1,]))
+  
+  b1.list <- lapply(1:n, function(i){
+    b1.vMF( Offset[i,] + bmu + t(bB) %*% X[i,] )
+  } )
+  
+  
+  ScoreVector <- matsum(1:n, function(i){
+    # \partial\bmu
+    s1 <- -2*gamma * matsum(1:p, function(j) tcrossprod(bB[j,])) %*% bmu
+    # \partial\bbeta^*
+    s2 <- -2*gamma * kronecker(diag(p), tcrossprod(bmu)) %*% bbeta
+    
+    kronecker(c(X[i,]), diag(1,q,q)) %*% ( Y[i,] - b1.list[[i]] ) + s2 # c(s1, s2)
+    
+  })
+  
+  ScoreVector
+}
+
+
+
 
 
 
@@ -504,11 +568,11 @@ FisherMatrix <- function(X, beta_new, orthogonal=NULL, gamma=0, OffSet=NULL){
   b2.list <- lapply(1:n, function(i) b2.vMF( OffSet[i,] + bmu + crossprod(Xt.list[[i]], bbeta) ))
   
   
-  F11 <- -matsum(1:n, function(i) b2.list[[i]] ) - 2*gamma*matsum(1:p, function(j) tcrossprod(bB[j,]))
+  F11 <- -matsum(1:n, function(i) b2.list[[i]] ) - gamma*matsum(1:p, function(j) tcrossprod(bB[j,]))
   
-  F22 <- -matsum(1:n, function(i) Xt.list[[i]] %*% b2.list[[i]] %*% t(Xt.list[[i]])) - 2*gamma*kronecker(diag(p), tcrossprod(bmu))
+  F22 <- -matsum(1:n, function(i) Xt.list[[i]] %*% b2.list[[i]] %*% t(Xt.list[[i]])) - gamma*kronecker(diag(p), tcrossprod(bmu))
   
-  F21 <- -matsum(1:n, function(i) Xt.list[[i]] %*% b2.list[[i]] ) - 2*gamma * do.call("rbind", lapply(1:p, function(j) c(crossprod(bmu, bB[j,]))*diag(q) + tcrossprod(bmu, bB[j,])))
+  F21 <- -matsum(1:n, function(i) Xt.list[[i]] %*% b2.list[[i]] ) - gamma * do.call("rbind", lapply(1:p, function(j) c(crossprod(bmu, bB[j,]))*diag(q) + tcrossprod(bmu, bB[j,])))
   
   Fn <- matrix(NA, (p+1)*q, (p+1)*q)
   

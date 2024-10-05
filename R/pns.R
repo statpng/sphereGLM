@@ -329,13 +329,13 @@ plot.pns <- function(fit.pns, proj.col="grey", ...){
   pnscircle <- fit.pns$PNS$pnscircle
   
   fit.pns$PNS$spherePNS %>% plot.sphere(...)
-  fit.pns$PNS$circlePNS %>% plot.sphere(col=proj.col, cex=0.005, add=TRUE)
+  fit.pns$PNS$circlePNS %>% plot.sphere(col=proj.col, cex=0.005, add=TRUE, ...)
   
   lines3d(pnscircle[,1], pnscircle[,2], pnscircle[,3], 
           lwd=1, barblen=0.03, width=0.5, add=TRUE, n=200, col="green")
   
   df <- fit.pns$PNS$spherePNS
   angles <- calculate_view_angles(df)
-  view3d(theta = angles['theta'], phi = angles['phi'], zoom = 0.75)
+  view3d(theta = angles['theta']*0.9, phi = angles['phi']*0.9, zoom = 0.75)
   
 }
